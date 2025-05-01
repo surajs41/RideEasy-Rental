@@ -15,6 +15,8 @@ import BookingsPage from "./pages/BookingsPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AboutPage from "./pages/AboutPage";
+import ContactPage from "./pages/ContactPage";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +33,8 @@ const App = () => (
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/bikes" element={<BikesPage />} />
             <Route path="/bikes/:id" element={<BikeDetailsPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route path="/profile" element={
               <ProtectedRoute>
                 <ProfilePage />

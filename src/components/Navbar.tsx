@@ -1,21 +1,14 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Menu, X, Search } from 'lucide-react';
+import { Menu, X, Search } from 'lucide-react';
 import { useToast } from "../hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 
-interface NavbarProps {
-  user: {
-    firstName: string;
-    avatarUrl?: string;
-  } | null;
-}
-
-const Navbar = ({ user }: NavbarProps) => {
+const Navbar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signOut: authSignOut } = useAuth();
+  const { user, signOut: authSignOut, profile } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -33,44 +26,41 @@ const Navbar = ({ user }: NavbarProps) => {
   };
 
   return (
-    <nav className="bg-white shadow-md px-4 py-3 sticky top-0 z-50">
-      <div className="container mx-auto flex justify-between items-center">
-        {/* Logo and brand name */}
-        <Link to="/" className="flex items-center space-x-2">
-          <span className="text-2xl text-brand-blue font-bold">RideEasy</span>
+    <nav className="bg-white shadow-sm py-4">
+      <div className="container mx-auto px-4 flex items-center justify-between">
+        {/* Logo */}
+        <Link to="/" className="flex items-center">
+          <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-brand-orange">
+            Ride<span className="text-brand-orange">Easy</span>
+          </span>
         </Link>
 
-        {/* Search bar */}
-        <div className="hidden md:flex items-center flex-grow max-w-md mx-4">
-          <div className="relative w-full">
-            <input 
-              type="text" 
-              placeholder="Search for bikes..." 
-              className="w-full border border-gray-300 rounded-full py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent"
-            />
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          </div>
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center space-x-8">
+          <Link to="/" className="text-gray-700 hover:text-brand-blue font-medium">Home</Link>
+          <Link to="/bikes" className="text-gray-700 hover:text-brand-blue font-medium">Bikes</Link>
+          <Link to="/about" className="text-gray-700 hover:text-brand-blue font-medium">About</Link>
+          <Link to="/contact" className="text-gray-700 hover:text-brand-blue font-medium">Contact</Link>
         </div>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-6">
-          <Link to="/" className="text-gray-700 hover:text-brand-blue transition-colors">Home</Link>
-          <Link to="/bikes" className="text-gray-700 hover:text-brand-blue transition-colors">Bikes</Link>
-          <Link to="/about" className="text-gray-700 hover:text-brand-blue transition-colors">About</Link>
-          <Link to="/contact" className="text-gray-700 hover:text-brand-blue transition-colors">Contact</Link>
+        {/* Search and Auth */}
+        <div className="hidden md:flex items-center space-x-4">
+          <button onClick={() => navigate('/bikes')} className="relative p-2 rounded-full hover:bg-gray-100">
+            <Search size={20} className="text-gray-600" />
+          </button>
           
           {user ? (
             <div className="relative group">
               <button className="flex items-center space-x-2">
-                {user.avatarUrl ? (
+                {profile?.avatar_url ? (
                   <img 
-                    src={user.avatarUrl} 
-                    alt={user.firstName}
-                    className="w-8 h-8 rounded-full object-cover border-2 border-brand-blue"
+                    src={profile.avatar_url} 
+                    alt={profile.first_name}
+                    className="w-9 h-9 rounded-full object-cover border border-gray-200"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-brand-blue flex items-center justify-center text-white">
-                    {user.firstName.charAt(0).toUpperCase()}
+                  <div className="w-9 h-9 rounded-full bg-brand-blue flex items-center justify-center text-white font-semibold">
+                    {profile?.first_name ? profile.first_name.charAt(0).toUpperCase() : "U"}
                   </div>
                 )}
               </button>
@@ -88,8 +78,12 @@ const Navbar = ({ user }: NavbarProps) => {
             </div>
           ) : (
             <div className="flex items-center space-x-3">
-              <Link to="/login" className="btn-outline">Log in</Link>
-              <Link to="/register" className="btn-primary">Register</Link>
+              <Link to="/login" className="font-medium text-gray-700">
+                Log In
+              </Link>
+              <Link to="/register" className="bg-cyan-500 hover:bg-cyan-600 text-white px-5 py-2 rounded-md font-medium">
+                Sign Up
+              </Link>
             </div>
           )}
         </div>
@@ -106,18 +100,6 @@ const Navbar = ({ user }: NavbarProps) => {
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
         <div className="md:hidden mt-3 pb-3">
-          {/* Mobile search */}
-          <div className="px-4 pb-3 pt-1">
-            <div className="relative w-full">
-              <input 
-                type="text" 
-                placeholder="Search for bikes..." 
-                className="w-full border border-gray-300 rounded-full py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent"
-              />
-              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          
           <Link to="/" className="block py-2 px-4 text-gray-700 hover:bg-gray-100">Home</Link>
           <Link to="/bikes" className="block py-2 px-4 text-gray-700 hover:bg-gray-100">Bikes</Link>
           <Link to="/about" className="block py-2 px-4 text-gray-700 hover:bg-gray-100">About</Link>
@@ -136,8 +118,10 @@ const Navbar = ({ user }: NavbarProps) => {
             </>
           ) : (
             <div className="flex flex-col space-y-2 px-4 pt-2">
-              <Link to="/login" className="btn-outline text-center">Log in</Link>
-              <Link to="/register" className="btn-primary text-center">Register</Link>
+              <Link to="/login" className="font-medium text-center py-2">Log In</Link>
+              <Link to="/register" className="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-4 rounded-md font-medium text-center">
+                Sign Up
+              </Link>
             </div>
           )}
         </div>

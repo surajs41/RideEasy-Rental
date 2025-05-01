@@ -1,44 +1,45 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 const HeroSection = () => {
   return (
-    <div className="relative bg-gradient-to-r from-brand-blue to-brand-dark-blue text-white py-16 md:py-24">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-black opacity-30"></div>
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/20 to-transparent"></div>
-      </div>
-      
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-3xl md:text-5xl font-bold mb-4 animate-fade-in">
-            Ride with Freedom, Experience the Thrill
-          </h1>
-          <p className="text-lg md:text-xl mb-8 text-white/90 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            Discover the best bikes for rent in your city. Easy booking, affordable rates, and hassle-free experience.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: '0.4s' }}>
-            <Link to="/bikes" className="btn-secondary flex items-center justify-center">
-              Browse Bikes
-              <ArrowRight size={18} className="ml-2" />
-            </Link>
-            <Link to="/about" className="bg-white text-brand-blue hover:bg-gray-100 py-2 px-4 rounded-md font-semibold transition-colors duration-300 flex items-center justify-center">
-              Learn More
-            </Link>
+    <div className="relative bg-gradient-to-br from-blue-50 to-cyan-50 overflow-hidden">
+      <div className="container mx-auto px-4 py-16 md:py-24">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          <div className="space-y-6 max-w-xl">
+            <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+              Discover the <span className="text-cyan-500">Freedom</span> 
+              <br />of Two Wheels
+            </h1>
+            <p className="text-lg text-gray-700">
+              Rent high-quality bikes for your adventures, commuting, 
+              or leisure. Fast, easy, and affordable.
+            </p>
+            
+            <div className="flex flex-wrap gap-4 pt-4">
+              <Link 
+                to="/bikes" 
+                className="bg-cyan-500 hover:bg-cyan-600 text-white py-3 px-6 rounded-md font-medium flex items-center"
+              >
+                Rent Now <ArrowRight size={18} className="ml-2" />
+              </Link>
+              <Link 
+                to="/about" 
+                className="bg-transparent border border-cyan-500 text-cyan-500 hover:bg-cyan-50 py-3 px-6 rounded-md font-medium"
+              >
+                Learn More
+              </Link>
+            </div>
           </div>
           
-          <div className="mt-10 bg-white rounded-lg shadow-lg p-4 max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: '0.6s' }}>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
-              <input 
-                type="text" 
-                placeholder="Search for bikes by name, type or location..." 
-                className="pl-10 pr-4 py-3 border-none rounded-md w-full focus:outline-none focus:ring-2 focus:ring-brand-blue bg-gray-50"
-              />
-            </div>
+          <div className="relative">
+            <img 
+              src="/lovable-uploads/c8eb9437-5bde-479c-9168-8a410afbb867.png" 
+              alt="Red sport motorcycle" 
+              className="rounded-lg shadow-xl w-full object-cover h-auto"
+            />
           </div>
         </div>
       </div>

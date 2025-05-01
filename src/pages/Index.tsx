@@ -1,30 +1,19 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import HeroSection from '../components/HeroSection';
 import FeaturedBikes from '../components/FeaturedBikes';
 import HowItWorks from '../components/HowItWorks';
 import TestimonialsSection from '../components/TestimonialsSection';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
-  const [user, setUser] = useState<{ firstName: string; avatarUrl?: string } | null>(null);
-  
-  useEffect(() => {
-    // In a real app, this would check Supabase auth session
-    const userJson = localStorage.getItem('rideEasyUser');
-    if (userJson) {
-      const userData = JSON.parse(userJson);
-      setUser({
-        firstName: userData.firstName,
-        avatarUrl: userData.avatarUrl,
-      });
-    }
-  }, []);
+  const { user, profile } = useAuth();
   
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar user={user} />
+      <Navbar />
       
       <main className="flex-grow">
         <HeroSection />
