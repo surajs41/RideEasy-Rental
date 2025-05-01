@@ -13,35 +13,48 @@ const BikeCard: React.FC<BikeCardProps> = ({ bike }) => {
   
   return (
     <div className="bike-card group">
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden rounded-t-lg">
         <img 
           src={bike.imageUrl || bikePlaceholder}
           alt={bike.name}
-          className="bike-card-image group-hover:scale-105 transition-transform duration-300"
+          className="bike-card-image group-hover:scale-105 transition-transform duration-500"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.onerror = null;
             target.src = bikePlaceholder;
           }}
         />
-        <div className="absolute top-2 right-2 bg-brand-blue text-white py-1 px-2 rounded text-sm font-medium">
-          {bike.type}
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
+          <div className="p-4 w-full">
+            <Link 
+              to={`/bikes/${bike.id}`} 
+              className="w-full bg-white/90 backdrop-blur-sm text-cyan-800 py-2 px-4 rounded-md font-semibold flex items-center justify-center hover:bg-white transition-colors"
+            >
+              View Details
+            </Link>
+          </div>
+        </div>
+        <div className="absolute top-2 right-2 bg-cyan-500 text-white py-1 px-2 rounded text-sm font-medium shadow-md">
+          {bike.type.charAt(0).toUpperCase() + bike.type.slice(1)}
         </div>
       </div>
       
       <div className="p-4">
         <h3 className="text-lg font-bold mb-2">{bike.name}</h3>
-        <p className="text-gray-600 text-sm mb-3">{bike.description.length > 100 ? `${bike.description.substring(0, 100)}...` : bike.description}</p>
+        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{bike.description}</p>
         
         <div className="flex justify-between items-center mt-4">
           <div className="flex items-center">
-            <BikeIcon size={16} className="text-brand-blue mr-1" />
+            <BikeIcon size={16} className="text-cyan-500 mr-1" />
             <span className="text-gray-700 font-semibold">₹{bike.pricePerDay}</span>
             <span className="text-gray-500 text-sm">/day</span>
           </div>
           
-          <Link to={`/bikes/${bike.id}`} className="btn-primary py-1 px-3 text-sm">
-            View Details
+          <Link 
+            to={`/bikes/${bike.id}`} 
+            className="text-cyan-600 hover:text-cyan-800 font-medium text-sm flex items-center transition-colors"
+          >
+            Details →
           </Link>
         </div>
       </div>

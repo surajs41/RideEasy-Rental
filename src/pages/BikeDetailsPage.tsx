@@ -18,20 +18,11 @@ const BikeDetailsPage = () => {
   }
   
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Navbar />
       
       <main className="flex-grow py-8">
         <div className="container mx-auto px-4">
-          <div className="mb-6">
-            <a 
-              href="/bikes" 
-              className="text-brand-blue hover:underline flex items-center"
-            >
-              ← Back to all bikes
-            </a>
-          </div>
-          
           <BikeDetail bike={bike} />
         </div>
       </main>

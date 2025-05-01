@@ -26,15 +26,27 @@ const BikesPage = () => {
   }, [searchTerm, selectedType]);
   
   const bikeTypes = ['all', 'scooter', 'commuter', 'electric', 'touring', 'sports', 'adventure'];
+
+  // Load Razorpay script in advance
+  useEffect(() => {
+    const loadRazorpayScript = () => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+    };
+
+    loadRazorpayScript();
+  }, []);
   
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Navbar />
       
       <main className="flex-grow py-8">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-            <h1 className="text-3xl font-bold mb-4 md:mb-0">Available Bikes</h1>
+            <h1 className="text-3xl font-bold mb-4 md:mb-0 text-gray-800">Available Bikes</h1>
             
             <div className="w-full md:w-auto flex items-center">
               <div className="relative flex-grow md:w-64">
@@ -42,7 +54,7 @@ const BikesPage = () => {
                 <input 
                   type="text" 
                   placeholder="Search bikes..." 
-                  className="pl-10 pr-4 py-2 border rounded-md w-full"
+                  className="pl-10 pr-4 py-2 border rounded-md w-full focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition duration-200"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -61,7 +73,7 @@ const BikesPage = () => {
                   key={type}
                   className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                     selectedType === type 
-                      ? 'bg-brand-blue text-white' 
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md' 
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                   onClick={() => setSelectedType(type)}
@@ -80,7 +92,9 @@ const BikesPage = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredBikes.map((bike) => (
-                <BikeCard key={bike.id} bike={bike} />
+                <div key={bike.id} className="transform hover:-translate-y-2 transition-transform duration-300">
+                  <BikeCard key={bike.id} bike={bike} />
+                </div>
               ))}
             </div>
           )}
