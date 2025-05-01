@@ -1,25 +1,40 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Camera, Edit, Check, X } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { updateUserProfile, uploadAvatar } from '@/lib/auth';
 
 const ProfileInfo = () => {
   const { toast } = useToast();
-  const userJson = localStorage.getItem('rideEasyUser');
-  const initialUserData = userJson ? JSON.parse(userJson) : null;
-  
-  const [userData, setUserData] = useState({
-    firstName: initialUserData?.firstName || '',
-    lastName: initialUserData?.lastName || '',
-    email: initialUserData?.email || '',
-    address: initialUserData?.address || '',
-    drivingLicenseNumber: initialUserData?.drivingLicenseNumber || '',
-    dateOfBirth: initialUserData?.dateOfBirth || '',
-    avatarUrl: initialUserData?.avatarUrl || '',
-  });
+  const { profile } = useAuth();
   
   const [editing, setEditing] = useState(false);
-  const [editedData, setEditedData] = useState({ ...userData });
+  const [isLoading, setIsLoading] = useState(false);
+  const [editedData, setEditedData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    address: '',
+    driving_license_number: '',
+    date_of_birth: '',
+    avatar_url: '',
+  });
+  
+  // Set initial data when profile is loaded
+  useEffect(() => {
+    if (profile) {
+      setEditedData({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        email: profile.email || '',
+        address: profile.address || '',
+        driving_license_number: profile.driving_license_number || '',
+        date_of_birth: profile.date_of_birth ? new Date(profile.date_of_birth).toISOString().split('T')[0] : '',
+        avatar_url: profile.avatar_url || '',
+      });
+    }
+  }, [profile]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -29,56 +44,85 @@ const ProfileInfo = () => {
     });
   };
   
-  const handleSaveProfile = () => {
-    setUserData(editedData);
-    
-    // In a real app, this would connect to Supabase to update the user data
-    // For demo, we'll update localStorage
-    if (initialUserData) {
-      const updatedUser = {
-        ...initialUserData,
-        firstName: editedData.firstName,
-        lastName: editedData.lastName,
+  const handleSaveProfile = async () => {
+    setIsLoading(true);
+    try {
+      await updateUserProfile({
+        first_name: editedData.first_name,
+        last_name: editedData.last_name,
         address: editedData.address,
-        dateOfBirth: editedData.dateOfBirth,
-        avatarUrl: editedData.avatarUrl,
-      };
-      localStorage.setItem('rideEasyUser', JSON.stringify(updatedUser));
+        date_of_birth: editedData.date_of_birth,
+      });
+      
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully.",
+      });
+      
+      setEditing(false);
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      
+      toast({
+        title: "Update Failed",
+        description: error.message || "There was a problem updating your profile.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-    
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been updated successfully.",
-    });
-    
-    setEditing(false);
   };
   
   const handleCancelEdit = () => {
-    setEditedData(userData);
+    if (profile) {
+      setEditedData({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        email: profile.email || '',
+        address: profile.address || '',
+        driving_license_number: profile.driving_license_number || '',
+        date_of_birth: profile.date_of_birth ? new Date(profile.date_of_birth).toISOString().split('T')[0] : '',
+        avatar_url: profile.avatar_url || '',
+      });
+    }
     setEditing(false);
   };
   
-  const handleUploadAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // In a real app, this would upload to Supabase storage
-      // For demo, we'll use local URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
+      setIsLoading(true);
+      try {
+        // Upload to Supabase Storage
+        const avatarUrl = await uploadAvatar(file);
+        
         setEditedData({
           ...editedData,
-          avatarUrl: reader.result as string,
+          avatar_url: avatarUrl,
         });
-      };
-      reader.readAsDataURL(file);
+        
+        toast({
+          title: "Avatar Updated",
+          description: "Your profile photo has been updated.",
+        });
+      } catch (error: any) {
+        console.error("Error uploading avatar:", error);
+        
+        toast({
+          title: "Upload Failed",
+          description: error.message || "There was a problem uploading your photo.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
   
-  if (!initialUserData) {
+  if (!profile) {
     return (
-      <div className="text-center p-8">
-        <p>Please log in to view your profile.</p>
+      <div className="flex justify-center items-center p-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-blue"></div>
       </div>
     );
   }
@@ -93,16 +137,35 @@ const ProfileInfo = () => {
             <button 
               onClick={handleCancelEdit}
               className="flex items-center px-3 py-1 text-red-500 border border-red-500 rounded hover:bg-red-50"
+              disabled={isLoading}
             >
               <X size={18} className="mr-1" />
               Cancel
             </button>
             <button 
               onClick={handleSaveProfile}
-              className="flex items-center px-3 py-1 text-green-600 border border-green-600 rounded hover:bg-green-50"
+              className="flex items-center px-3 py-1 text-green-600 border border-green-600 rounded hover:bg-green-50 relative"
+              disabled={isLoading}
             >
-              <Check size={18} className="mr-1" />
-              Save
+              {isLoading ? (
+                <>
+                  <span className="opacity-0">
+                    <Check size={18} className="mr-1" />
+                    Save
+                  </span>
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <svg className="animate-spin h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Check size={18} className="mr-1" />
+                  Save
+                </>
+              )}
             </button>
           </div>
         ) : (
@@ -121,15 +184,15 @@ const ProfileInfo = () => {
         <div className="md:col-span-1 flex flex-col items-center">
           <div className="relative mb-4">
             <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-brand-blue">
-              {editedData.avatarUrl ? (
+              {editedData.avatar_url ? (
                 <img 
-                  src={editedData.avatarUrl}
+                  src={editedData.avatar_url}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center text-4xl font-bold text-gray-400">
-                  {userData.firstName?.charAt(0)}{userData.lastName?.charAt(0)}
+                  {editedData.first_name?.charAt(0)}{editedData.last_name?.charAt(0)}
                 </div>
               )}
             </div>
@@ -149,9 +212,9 @@ const ProfileInfo = () => {
           </div>
           
           <h3 className="text-xl font-bold text-center">
-            {userData.firstName} {userData.lastName}
+            {profile.first_name} {profile.last_name}
           </h3>
-          <p className="text-gray-600 text-center">{userData.email}</p>
+          <p className="text-gray-600 text-center">{profile.email}</p>
         </div>
         
         {/* Profile Fields */}
@@ -165,13 +228,13 @@ const ProfileInfo = () => {
               {editing ? (
                 <input
                   type="text"
-                  name="firstName"
-                  value={editedData.firstName}
+                  name="first_name"
+                  value={editedData.first_name}
                   onChange={handleInputChange}
                   className="input-field"
                 />
               ) : (
-                <div className="input-field bg-gray-50">{userData.firstName}</div>
+                <div className="input-field bg-gray-50">{editedData.first_name}</div>
               )}
             </div>
             
@@ -183,13 +246,13 @@ const ProfileInfo = () => {
               {editing ? (
                 <input
                   type="text"
-                  name="lastName"
-                  value={editedData.lastName}
+                  name="last_name"
+                  value={editedData.last_name}
                   onChange={handleInputChange}
                   className="input-field"
                 />
               ) : (
-                <div className="input-field bg-gray-50">{userData.lastName}</div>
+                <div className="input-field bg-gray-50">{editedData.last_name}</div>
               )}
             </div>
             
@@ -198,7 +261,7 @@ const ProfileInfo = () => {
               <label className="block text-gray-700 font-medium mb-1">
                 Email
               </label>
-              <div className="input-field bg-gray-50 text-gray-500">{userData.email}</div>
+              <div className="input-field bg-gray-50 text-gray-500">{editedData.email}</div>
             </div>
             
             {/* Date of Birth */}
@@ -209,13 +272,15 @@ const ProfileInfo = () => {
               {editing ? (
                 <input
                   type="date"
-                  name="dateOfBirth"
-                  value={editedData.dateOfBirth}
+                  name="date_of_birth"
+                  value={editedData.date_of_birth}
                   onChange={handleInputChange}
                   className="input-field"
                 />
               ) : (
-                <div className="input-field bg-gray-50">{userData.dateOfBirth}</div>
+                <div className="input-field bg-gray-50">
+                  {editedData.date_of_birth ? new Date(editedData.date_of_birth).toLocaleDateString() : ''}
+                </div>
               )}
             </div>
             
@@ -233,7 +298,7 @@ const ProfileInfo = () => {
                   className="input-field"
                 />
               ) : (
-                <div className="input-field bg-gray-50 min-h-[80px]">{userData.address}</div>
+                <div className="input-field bg-gray-50 min-h-[80px]">{editedData.address}</div>
               )}
             </div>
             
@@ -242,7 +307,7 @@ const ProfileInfo = () => {
               <label className="block text-gray-700 font-medium mb-1">
                 Driving License Number
               </label>
-              <div className="input-field bg-gray-50 text-gray-500">{userData.drivingLicenseNumber}</div>
+              <div className="input-field bg-gray-50 text-gray-500">{editedData.driving_license_number}</div>
             </div>
           </div>
         </div>

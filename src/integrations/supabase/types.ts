@@ -9,7 +9,125 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      bikes: {
+        Row: {
+          availability_status: boolean | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          price_per_day: number
+          type: string
+        }
+        Insert: {
+          availability_status?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          price_per_day: number
+          type: string
+        }
+        Update: {
+          availability_status?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          price_per_day?: number
+          type?: string
+        }
+        Relationships: []
+      }
+      bookings: {
+        Row: {
+          bike_id: string
+          booking_status: string | null
+          created_at: string
+          end_date: string
+          id: string
+          payment_id: string | null
+          payment_status: string | null
+          start_date: string
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          bike_id: string
+          booking_status?: string | null
+          created_at?: string
+          end_date: string
+          id?: string
+          payment_id?: string | null
+          payment_status?: string | null
+          start_date: string
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          bike_id?: string
+          booking_status?: string | null
+          created_at?: string
+          end_date?: string
+          id?: string
+          payment_id?: string | null
+          payment_status?: string | null
+          start_date?: string
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_bike_id_fkey"
+            columns: ["bike_id"]
+            isOneToOne: false
+            referencedRelation: "bikes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          address: string | null
+          avatar_url: string | null
+          created_at: string
+          date_of_birth: string | null
+          driving_license_number: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          driving_license_number: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          driving_license_number?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

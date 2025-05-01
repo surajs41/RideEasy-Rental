@@ -1,21 +1,26 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
+import { signIn } from '@/lib/auth';
 
 const LoginForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || '/';
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [errors, setErrors] = useState({
     email: '',
-    password: ''
+    password: '',
+    general: ''
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,7 +42,8 @@ const LoginForm = () => {
   const validateForm = () => {
     const newErrors = {
       email: '',
-      password: ''
+      password: '',
+      general: ''
     };
     
     if (!formData.email) {
@@ -54,64 +60,68 @@ const LoginForm = () => {
     return !newErrors.email && !newErrors.password;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
       return;
     }
     
-    // Admin login check
-    if (isAdmin) {
-      if (formData.email === 'admin@bike.in' && formData.password === 'admin@123') {
-        const adminUser = {
-          id: 'admin-123',
-          firstName: 'Admin',
-          lastName: 'User',
-          email: 'admin@bike.in',
-          role: 'admin'
-        };
-        
-        localStorage.setItem('rideEasyUser', JSON.stringify(adminUser));
-        
-        toast({
-          title: "Admin login successful",
-          description: "Welcome to the admin dashboard.",
-        });
-        
-        navigate('/admin');
-        return;
+    setIsLoading(true);
+    
+    try {
+      // Admin login check
+      if (isAdmin) {
+        if (formData.email === 'admin@bike.in' && formData.password === 'admin@123') {
+          // For demo admin login
+          localStorage.setItem('rideEasyUser', JSON.stringify({
+            id: 'admin-123',
+            firstName: 'Admin',
+            lastName: 'User',
+            email: 'admin@bike.in',
+            role: 'admin'
+          }));
+          
+          toast({
+            title: "Admin login successful",
+            description: "Welcome to the admin dashboard.",
+          });
+          
+          navigate('/admin');
+        } else {
+          toast({
+            title: "Admin login failed",
+            description: "Invalid admin credentials.",
+            variant: "destructive"
+          });
+        }
       } else {
-        toast({
-          title: "Admin login failed",
-          description: "Invalid admin credentials.",
-          variant: "destructive"
-        });
-        return;
+        // Regular user login with Supabase
+        const { session } = await signIn(formData.email, formData.password);
+        
+        if (session) {
+          toast({
+            title: "Login successful!",
+            description: "Welcome back to RideEasy.",
+          });
+          navigate(from);
+        }
       }
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setErrors({
+        ...errors,
+        general: error.message || 'Login failed. Please try again.'
+      });
+      
+      toast({
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-    
-    // In a real app, this would be replaced with Supabase auth
-    // For demo, we'll simulate a successful login
-    const mockUser = {
-      id: 'user-123',
-      firstName: 'John',
-      lastName: 'Doe',
-      email: formData.email,
-      address: '123 Main St, Mumbai',
-      drivingLicenseNumber: 'DL12345678',
-      dateOfBirth: '1990-01-01',
-      role: 'user'
-    };
-    
-    localStorage.setItem('rideEasyUser', JSON.stringify(mockUser));
-    
-    toast({
-      title: "Login successful!",
-      description: "Welcome back to RideEasy.",
-    });
-    
-    navigate('/');
   };
 
   const togglePasswordVisibility = () => {
@@ -139,6 +149,12 @@ const LoginForm = () => {
           </button>
         </div>
       </div>
+      
+      {errors.general && (
+        <div className="p-3 mb-4 bg-red-50 text-red-600 border border-red-200 rounded">
+          {errors.general}
+        </div>
+      )}
       
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
@@ -182,8 +198,24 @@ const LoginForm = () => {
           {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
         </div>
         
-        <button type="submit" className="w-full btn-primary">
-          {isAdmin ? "Admin Login" : "Log In"}
+        <button 
+          type="submit" 
+          className="w-full btn-primary relative"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <span className="opacity-0">{isAdmin ? "Admin Login" : "Log In"}</span>
+              <span className="absolute inset-0 flex items-center justify-center">
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </span>
+            </>
+          ) : (
+            isAdmin ? "Admin Login" : "Log In"
+          )}
         </button>
       </form>
       
