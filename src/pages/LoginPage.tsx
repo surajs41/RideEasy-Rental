@@ -8,7 +8,7 @@ import LoginForm from '../components/LoginForm';
 const LoginPage = () => {
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar user={null} />
+      <Navbar />
       
       <div className="flex-grow flex items-center justify-center px-4 py-12 bg-gray-50">
         <LoginForm />

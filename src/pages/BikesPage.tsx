@@ -5,24 +5,13 @@ import Footer from '../components/Footer';
 import BikeCard from '../components/BikeCard';
 import { bikes } from '../data/bikes';
 import { Search, Filter } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const BikesPage = () => {
-  const [user, setUser] = useState<{ firstName: string; avatarUrl?: string } | null>(null);
+  const { user } = useAuth();
   const [filteredBikes, setFilteredBikes] = useState(bikes);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
-  
-  useEffect(() => {
-    // In a real app, this would check Supabase auth session
-    const userJson = localStorage.getItem('rideEasyUser');
-    if (userJson) {
-      const userData = JSON.parse(userJson);
-      setUser({
-        firstName: userData.firstName,
-        avatarUrl: userData.avatarUrl,
-      });
-    }
-  }, []);
   
   useEffect(() => {
     // Filter bikes based on search term and selected type
@@ -40,7 +29,7 @@ const BikesPage = () => {
   
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar user={user} />
+      <Navbar />
       
       <main className="flex-grow py-8">
         <div className="container mx-auto px-4">

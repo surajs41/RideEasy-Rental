@@ -12,7 +12,7 @@ const ProfilePage = () => {
   
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar user={profile ? {firstName: profile.first_name, avatarUrl: profile.avatar_url} : null} />
+      <Navbar />
       
       <main className="flex-grow py-8 bg-gray-50">
         <div className="container mx-auto px-4">
