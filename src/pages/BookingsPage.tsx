@@ -1,13 +1,11 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import HeroSection from '../components/HeroSection';
-import FeaturedBikes from '../components/FeaturedBikes';
-import HowItWorks from '../components/HowItWorks';
-import TestimonialsSection from '../components/TestimonialsSection';
+import BookingsList from '../components/BookingsList';
 
-const Index = () => {
+const BookingsPage = () => {
   const [user, setUser] = useState<{ firstName: string; avatarUrl?: string } | null>(null);
   
   useEffect(() => {
@@ -22,15 +20,21 @@ const Index = () => {
     }
   }, []);
   
+  // Redirect to login if not authenticated
+  if (user === null) {
+    return <Navigate to="/login" replace />;
+  }
+  
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar user={user} />
       
-      <main className="flex-grow">
-        <HeroSection />
-        <FeaturedBikes />
-        <HowItWorks />
-        <TestimonialsSection />
+      <main className="flex-grow py-8 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl font-bold mb-8">My Bookings</h1>
+          
+          <BookingsList />
+        </div>
       </main>
       
       <Footer />
@@ -38,4 +42,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default BookingsPage;
