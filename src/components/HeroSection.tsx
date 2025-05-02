@@ -36,7 +36,7 @@ const HeroSection = () => {
           
           <div className="relative">
             <img 
-              src="/lovable-uploads/21b4240a-6007-462e-ade2-ef063adf5e3d.jpg" 
+              src="/lovable-uploads/d202ba48-6992-4bcc-a85d-d5bfaa514a93.png" 
               alt="Red sport motorcycle" 
               className="rounded-lg shadow-xl w-full object-cover h-auto"
             />

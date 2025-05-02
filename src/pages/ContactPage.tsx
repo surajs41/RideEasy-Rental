@@ -4,7 +4,6 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Phone, MapPin } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 const ContactPage = () => {
   const { toast } = useToast();
@@ -29,18 +28,26 @@ const ContactPage = () => {
     setIsSubmitting(true);
 
     try {
-      // Send email using the edge function
-      const { data, error } = await supabase.functions.invoke('send-confirmation', {
-        body: {
+      // Send the form data to Formspree
+      const response = await fetch('https://formspree.io/f/mqaprnqz', {
+        method: 'POST',
+        body: JSON.stringify({
           name: formData.name,
           email: formData.email,
           subject: formData.subject,
           message: formData.message,
+          phone: formData.phone,
+          _replyto: formData.email, // This will set the reply-to header in the email
+        }),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
       });
-
-      if (error) {
-        throw error;
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Form submission failed');
       }
 
       // Success
