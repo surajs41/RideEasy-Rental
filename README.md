@@ -1,18 +1,18 @@
-# Welcome to your Lovable project
+# Welcome to your RideEasy project
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/166f44cb-4042-4431-85cc-98edeb26731f
+**URL**: 
 
 ## How can I edit this code?
 
 There are several ways of editing your application.
 
-**Use Lovable**
+**Use RideEasy**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/166f44cb-4042-4431-85cc-98edeb26731f) and start prompting.
+Simply visit the and start prompting.
 
-Changes made via Lovable will be committed automatically to this repo.
+Changes made via RideEasy will be committed automatically to this repo.
 
 **Use your preferred IDE**
 
@@ -62,12 +62,12 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/166f44cb-4042-4431-85cc-98edeb26731f) and click on Share -> Publish.
+Simply open and click on Share -> Publish.
 
-## Can I connect a custom domain to my Lovable project?
+## Can I connect a custom domain to my RideEasy project?
 
 Yes, you can!
 
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Read more here:
