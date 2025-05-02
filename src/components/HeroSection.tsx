@@ -36,9 +36,9 @@ const HeroSection = () => {
           
           <div className="relative">
             <img 
-              src="/lovable-uploads/c8eb9437-5bde-479c-9168-8a410afbb867.png" 
+              src="/lovable-uploads/8b1cf760-3ece-4560-a2bf-25d4c429897e.png" 
               alt="Red sport motorcycle" 
-              className="rounded-lg shadow-xl w-full object-cover h-auto"
+              className="rounded-lg shadow-xl w-full object-cover h-auto transform hover:scale-105 transition-all duration-500"
             />
           </div>
         </div>

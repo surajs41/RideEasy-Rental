@@ -90,14 +90,14 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 @layer components {
   .bike-card {
-    @apply border rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 bg-white;
+    @apply border rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 bg-white dark:bg-gray-800 dark:border-gray-700;
   }
   
   .bike-card-image {
@@ -105,7 +105,7 @@
   }
   
   .input-field {
-    @apply w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue;
+    @apply w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue dark:bg-gray-800 dark:border-gray-700 dark:text-white;
   }
   
   .btn-primary {
@@ -117,10 +117,56 @@
   }
 
   .btn-outline {
-    @apply border border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white py-2 px-4 rounded-md font-semibold transition-colors duration-300;
+    @apply border border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white py-2 px-4 rounded-md font-semibold transition-colors duration-300 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-900;
   }
   
   .counter-btn {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold py-1 px-3 rounded-full transition-colors duration-300;
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold py-1 px-3 rounded-full transition-colors duration-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600;
   }
+  
+  /* 3D animation effects */
+  .hover-3d {
+    @apply transition-transform duration-300 transform-gpu hover:scale-105;
+  }
+  
+  .card-3d {
+    @apply transition-all duration-300 hover:shadow-xl transform-gpu hover:-translate-y-1;
+  }
+  
+  /* Dark mode specific styling */
+  .dark .glass-effect {
+    @apply bg-gray-900/80 backdrop-blur-md border border-gray-800;
+  }
+  
+  .light .glass-effect {
+    @apply bg-white/80 backdrop-blur-md border border-gray-200;
+  }
+}
+
+/* Animation classes */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounce 2s ease-in-out infinite;
 }
