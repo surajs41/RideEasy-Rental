@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/use-toast';
@@ -15,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Link } from 'react-router-dom';
 import lottie from 'lottie-web';
-import { jsPDF } from 'jspdf';
+import { jsPDF } from "jspdf";
 
 interface BikeDetailProps {
   bike: Bike;
@@ -468,7 +467,7 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
               </div>
               
               <button 
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white py-3 px-4 rounded-md font-semibold transition-colors duration-300 mt-4 shadow-md hover:shadow-lg transform hover:-translate-y-1 active:translate-y-0"
+                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white py-3 px-4 rounded-md font-medium transition-colors duration-300 mt-4 shadow-md hover:shadow-lg transform hover:-translate-y-1 active:translate-y-0"
                 onClick={handleBooking}
               >
                 Book Now
