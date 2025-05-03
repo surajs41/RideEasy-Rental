@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
@@ -87,7 +86,9 @@ const LoginForm = () => {
             description: "Welcome to the admin dashboard.",
           });
           
-          navigate('/admin');
+          // Use direct window.location.href navigation to ensure full page reload
+          window.location.href = '/admin';
+          return;
         } else {
           toast({
             title: "Admin login failed",

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { User, Bike as BikeIcon, BookOpen, Settings, LogOut } from 'lucide-react';
@@ -8,6 +7,7 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const [activeSection, setActiveSection] = useState('users');
   const [admin, setAdmin] = useState<{ firstName: string; role: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Mock data for demonstration
   const users = [
@@ -17,14 +17,23 @@ const AdminDashboard = () => {
   ];
   
   useEffect(() => {
-    // In a real app, this would check Supabase auth session
-    const userJson = localStorage.getItem('rideEasyUser');
-    if (userJson) {
-      const userData = JSON.parse(userJson);
-      if (userData.role === 'admin') {
-        setAdmin(userData);
+    // Check if admin is logged in
+    const checkAdminAuth = () => {
+      const userJson = localStorage.getItem('rideEasyUser');
+      if (userJson) {
+        try {
+          const userData = JSON.parse(userJson);
+          if (userData.role === 'admin') {
+            setAdmin(userData);
+          }
+        } catch (error) {
+          console.error("Error parsing admin user data:", error);
+        }
       }
-    }
+      setIsLoading(false);
+    };
+    
+    checkAdminAuth();
   }, []);
   
   const handleLogout = () => {
@@ -37,6 +46,15 @@ const AdminDashboard = () => {
     
     window.location.href = '/login';
   };
+  
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+      </div>
+    );
+  }
   
   // Redirect to login if not admin
   if (admin === null) {

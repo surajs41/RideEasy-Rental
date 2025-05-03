@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/use-toast';
@@ -163,6 +164,9 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
       const newBookingId = generateBookingId();
       setBookingId(newBookingId);
       
+      // Get payment method name
+      const paymentMethodName = paymentMethods.find(p => p.id === paymentMethod)?.name || paymentMethod;
+      
       // Store booking in Supabase
       const bookingDetails = {
         bike_id: bike.id,
@@ -173,12 +177,17 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
         payment_id: `${paymentMethod}-${newBookingId}`,
         payment_status: 'completed',
         booking_status: 'confirmed',
-        payment_method: paymentMethod
+        payment_method: paymentMethodName
       };
+      
+      console.log('Submitting booking details:', bookingDetails);
       
       const { error } = await supabase.from('bookings').insert(bookingDetails);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase booking error:', error);
+        throw error;
+      }
       
       // Send confirmation email
       await sendConfirmationEmail(newBookingId);
