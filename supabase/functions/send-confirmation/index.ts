@@ -19,7 +19,7 @@ interface BookingConfirmation {
   paymentId: string;
   pickupLocation: string;
   dropoffLocation: string;
-  receiptUrl?: string;
+  paymentMethod: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -31,7 +31,18 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const bookingData: BookingConfirmation = await req.json();
     
-    const { name, email, bikeName, startDate, endDate, totalAmount, paymentId, pickupLocation, dropoffLocation } = bookingData;
+    const { 
+      name, 
+      email, 
+      bikeName, 
+      startDate, 
+      endDate, 
+      totalAmount, 
+      paymentId, 
+      pickupLocation, 
+      dropoffLocation,
+      paymentMethod
+    } = bookingData;
 
     const emailResponse = await resend.emails.send({
       from: "RideEasy <onboarding@resend.dev>",
@@ -39,37 +50,68 @@ const handler = async (req: Request): Promise<Response> => {
       subject: "Your Bike Booking Confirmation - RideEasy",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-          <div style="background-color: #2563EB; padding: 15px; text-align: center; border-radius: 5px 5px 0 0;">
-            <h1 style="color: white; margin: 0;">Booking Confirmation</h1>
+          <div style="background: linear-gradient(to right, #0891b2, #2563eb); padding: 20px; text-align: center; border-radius: 5px 5px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">Booking Confirmed ✅</h1>
           </div>
           
           <div style="padding: 20px;">
             <p>Hello ${name},</p>
-            <p>Your bike booking has been confirmed! Here are your booking details:</p>
+            <p>Great news! Your bike booking has been confirmed. Here are your booking details:</p>
             
-            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p><strong>Bike:</strong> ${bikeName}</p>
-              <p><strong>Duration:</strong> ${startDate} to ${endDate}</p>
-              <p><strong>Pickup Location:</strong> ${pickupLocation}</p>
-              <p><strong>Drop-off Location:</strong> ${dropoffLocation}</p>
-              <p><strong>Payment ID:</strong> ${paymentId}</p>
-              <p><strong>Total Amount:</strong> ₹${totalAmount.toFixed(2)}</p>
+            <div style="background-color: #f0f9ff; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #0891b2;">
+              <h2 style="color: #0891b2; margin-top: 0;">Booking Details</h2>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b; width: 40%;">Booking ID:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${paymentId}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Bike:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${bikeName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Duration:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${startDate} to ${endDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Pickup Location:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${pickupLocation}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Drop-off Location:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${dropoffLocation}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Payment Method:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${paymentMethod}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #64748b;">Total Amount:</td>
+                  <td style="padding: 8px 0; font-weight: bold; color: #0891b2; font-size: 18px;">₹${totalAmount.toFixed(2)}</td>
+                </tr>
+              </table>
             </div>
             
-            <p>Please keep this email for your records. You can also view your booking details in your RideEasy account.</p>
-            
-            <div style="background-color: #4ade80; color: white; text-align: center; padding: 10px; border-radius: 5px; margin: 20px 0;">
-              <p style="margin: 0; font-weight: bold;">Payment Successful</p>
+            <div style="background-color: #ecfdf5; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #10b981;">
+              <h3 style="color: #059669; margin-top: 0;">What's Next?</h3>
+              <p style="margin-bottom: 5px;">1. Arrive at the pickup location on your start date.</p>
+              <p style="margin-bottom: 5px;">2. Present your ID and driver's license.</p>
+              <p style="margin-bottom: 0;">3. Enjoy your ride!</p>
             </div>
             
-            <p>If you have any questions or need assistance, please contact our support team.</p>
+            <p>If you need to modify or cancel your booking, please contact us at least 24 hours before your pickup time.</p>
             
             <p>Thank you for choosing RideEasy!</p>
+            <p>Ride safe and have a great adventure!</p>
             <p>Best regards,<br>The RideEasy Team</p>
           </div>
           
-          <div style="background-color: #f3f4f6; padding: 15px; text-align: center; border-radius: 0 0 5px 5px;">
-            <p style="margin: 0; font-size: 12px; color: #6b7280;">© 2025 RideEasy. All rights reserved.</p>
+          <div style="background-color: #f1f5f9; padding: 15px; text-align: center; border-radius: 0 0 5px 5px;">
+            <p style="margin: 0; font-size: 12px; color: #64748b;">
+              © 2025 RideEasy. All rights reserved.<br>
+              <a href="https://rideeasy.example.com/contact" style="color: #0891b2; text-decoration: none;">Contact Support</a> | 
+              <a href="https://rideeasy.example.com/terms" style="color: #0891b2; text-decoration: none;">Terms & Conditions</a>
+            </p>
           </div>
         </div>
       `,

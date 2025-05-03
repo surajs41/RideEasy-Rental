@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/use-toast';
-import { Calendar, Plus, Minus, Check, MapPin, ChevronDown, ArrowLeft } from 'lucide-react';
+import { Calendar, Plus, Minus, Check, MapPin, ChevronDown, ArrowLeft, FileText, Download } from 'lucide-react';
 import { Bike } from '../types';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,13 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Link } from 'react-router-dom';
-
-// Add Razorpay TypeScript declaration
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
+import lottie from 'lottie-web';
+import { jsPDF } from 'jspdf';
 
 interface BikeDetailProps {
   bike: Bike;
@@ -34,14 +29,15 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
   const [days, setDays] = useState(1);
   const [startDate, setStartDate] = useState(new Date());
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('upi');
+  const [paymentMethod, setPaymentMethod] = useState('gpay');
   const [selectedBranch, setSelectedBranch] = useState('pune');
   const [pickupLocation, setPickupLocation] = useState('Main Pune Branch - MG Road');
   const [dropoffLocation, setDropoffLocation] = useState('Main Pune Branch - MG Road');
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
-  const [paymentId, setPaymentId] = useState('');
+  const [bookingId, setBookingId] = useState('');
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const lottieContainerRef = useRef<HTMLDivElement>(null);
   
   // Calculate end date based on start date and days
   const endDate = new Date(startDate);
@@ -50,6 +46,17 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
   // Format dates for display
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+  
+  const formatDateWithTime = (date: Date) => {
+    return date.toLocaleDateString('en-GB', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    }) + ' at ' + date.toLocaleTimeString('en-GB', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
   };
   
   const handleIncrementDays = () => {
@@ -93,8 +100,15 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
     { id: 'hyderabad', name: 'Hyderabad Branch - Banjara Hills' }
   ];
   
-  const handlePaymentMethodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPaymentMethod(e.target.value);
+  const paymentMethods = [
+    { id: 'gpay', name: 'Google Pay (UPI)' },
+    { id: 'phonepay', name: 'PhonePe (UPI)' },
+    { id: 'paytm', name: 'Paytm (UPI)' },
+    { id: 'cash', name: 'Cash on Pickup' }
+  ];
+  
+  const handlePaymentMethodChange = (value: string) => {
+    setPaymentMethod(value);
   };
 
   const handleBranchChange = (value: string) => {
@@ -107,7 +121,36 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
     }
   };
   
-  const initiateRazorpayPayment = () => {
+  // Generate a random booking ID
+  const generateBookingId = () => {
+    const prefix = 'RIDEZ';
+    const randomPart = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+    return `${prefix}${randomPart}`;
+  };
+  
+  useEffect(() => {
+    // Initialize booking ID if not already set
+    if (bookingConfirmed && !bookingId) {
+      setBookingId(generateBookingId());
+    }
+    
+    // Initialize Lottie animation when booking is confirmed
+    if (bookingConfirmed && lottieContainerRef.current) {
+      const animation = lottie.loadAnimation({
+        container: lottieContainerRef.current,
+        renderer: 'svg',
+        loop: false,
+        autoplay: true,
+        path: 'https://assets10.lottiefiles.com/packages/lf20_jbrw3hcz.json' // Green checkmark animation
+      });
+      
+      return () => {
+        animation.destroy();
+      };
+    }
+  }, [bookingConfirmed, bookingId]);
+  
+  const processBookingConfirmation = async () => {
     if (!termsAgreed) {
       toast({
         title: "Terms & Conditions Required",
@@ -117,82 +160,29 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
       return;
     }
     
-    const options = {
-      key: "rzp_test_9aJidIlkwc3Duj",  // Replace with actual Razorpay key
-      amount: totalPayable * 100, // Amount in smallest currency unit (paise for INR)
-      currency: "INR",
-      name: "RideEasy Rentals",
-      description: `${bike.name} Rental for ${days} days`,
-      image: "https://example.com/your_logo", // Replace with your logo URL
-      handler: function(response: any) {
-        // Handle successful payment
-        const paymentId = response.razorpay_payment_id;
-        setPaymentId(paymentId);
-        processBookingConfirmation(paymentId);
-      },
-      prefill: {
-        name: profile ? `${profile.first_name} ${profile.last_name}` : "",
-        email: user?.email || "",
-        contact: ""  // You can add phone from profile if available
-      },
-      theme: {
-        color: "#2563EB"
-      },
-      modal: {
-        ondismiss: function() {
-          console.log("Payment modal closed without completing payment");
-        }
-      }
-    };
-    
-    const razorpay = new window.Razorpay(options);
-    razorpay.open();
-  };
-  
-  const processBookingConfirmation = async (paymentId: string) => {
     try {
-      // In a real app, this would connect to Supabase and create a booking record
-      const bookingDetails = {
-        bikeId: bike.id,
-        bikeName: bike.name,
-        startDate: formatDate(startDate),
-        endDate: formatDate(endDate),
-        days,
-        totalAmount: totalPayable,
-        paymentId: paymentId,
-        pickupLocation,
-        dropoffLocation,
-        timestamp: new Date().toISOString(),
-      };
+      const newBookingId = generateBookingId();
+      setBookingId(newBookingId);
       
       // Store booking in Supabase
-      const { error } = await supabase.from('bookings').insert({
+      const bookingDetails = {
         bike_id: bike.id,
         user_id: user?.id,
         start_date: startDate.toISOString().split('T')[0],
         end_date: endDate.toISOString().split('T')[0],
         total_amount: totalPayable,
-        payment_id: paymentId,
+        payment_id: `${paymentMethod}-${newBookingId}`,
         payment_status: 'completed',
-        booking_status: 'confirmed'
-      });
+        booking_status: 'confirmed',
+        payment_method: paymentMethod
+      };
+      
+      const { error } = await supabase.from('bookings').insert(bookingDetails);
       
       if (error) throw error;
       
       // Send confirmation email
-      await supabase.functions.invoke('send-confirmation', {
-        body: {
-          name: profile ? `${profile.first_name} ${profile.last_name}` : "User",
-          email: user?.email,
-          bikeName: bike.name,
-          startDate: formatDate(startDate),
-          endDate: formatDate(endDate),
-          totalAmount: totalPayable,
-          paymentId: paymentId,
-          pickupLocation,
-          dropoffLocation,
-        }
-      });
+      await sendConfirmationEmail(newBookingId);
       
       // Show confirmation and success message
       setBookingConfirmed(true);
@@ -210,19 +200,99 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
     }
   };
   
-  const handlePayNow = () => {
-    // Load Razorpay script if not already loaded
-    if (!window.Razorpay) {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.async = true;
-      script.onload = () => {
-        initiateRazorpayPayment();
-      };
-      document.body.appendChild(script);
-    } else {
-      initiateRazorpayPayment();
+  const sendConfirmationEmail = async (bookingId: string) => {
+    try {
+      // Send email using Supabase Edge Function
+      await supabase.functions.invoke('send-confirmation', {
+        body: {
+          name: profile ? `${profile.first_name} ${profile.last_name}` : "User",
+          email: user?.email,
+          bikeName: bike.name,
+          startDate: formatDate(startDate),
+          endDate: formatDate(endDate),
+          totalAmount: totalPayable,
+          paymentId: bookingId,
+          pickupLocation,
+          dropoffLocation,
+          paymentMethod: paymentMethods.find(p => p.id === paymentMethod)?.name || paymentMethod,
+        }
+      });
+    } catch (error) {
+      console.error('Error sending confirmation email:', error);
     }
+  };
+  
+  const handlePayNow = () => {
+    processBookingConfirmation();
+  };
+  
+  const generateInvoicePDF = () => {
+    const doc = new jsPDF();
+    
+    // Add logo or header
+    doc.setFontSize(22);
+    doc.setTextColor(41, 128, 185); // Blue color for heading
+    doc.text("RideEasy Booking Invoice", 105, 20, { align: 'center' });
+    
+    // Add divider
+    doc.setDrawColor(41, 128, 185);
+    doc.line(20, 25, 190, 25);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0); // Reset to black
+    
+    // Add booking details
+    doc.setFontSize(14);
+    doc.text("Booking Details", 20, 35);
+    doc.setFontSize(12);
+    
+    doc.text(`Booking ID: ${bookingId}`, 20, 45);
+    doc.text(`Booking Date: ${formatDateWithTime(new Date())}`, 20, 52);
+    
+    // Customer Info
+    doc.setFontSize(14);
+    doc.text("Customer Information", 20, 65);
+    doc.setFontSize(12);
+    doc.text(`Name: ${profile ? `${profile.first_name} ${profile.last_name}` : "User"}`, 20, 75);
+    doc.text(`Email: ${user?.email || ""}`, 20, 82);
+    
+    // Bike Details
+    doc.setFontSize(14);
+    doc.text("Bike Details", 20, 95);
+    doc.setFontSize(12);
+    doc.text(`Bike: ${bike.name}`, 20, 105);
+    doc.text(`Type: ${bike.type}`, 20, 112);
+    
+    // Rental Details
+    doc.setFontSize(14);
+    doc.text("Rental Details", 20, 125);
+    doc.setFontSize(12);
+    doc.text(`Pickup Location: ${pickupLocation}`, 20, 135);
+    doc.text(`Pickup Date: ${formatDate(startDate)}`, 20, 142);
+    doc.text(`Return Date: ${formatDate(endDate)}`, 20, 149);
+    doc.text(`Duration: ${days} days`, 20, 156);
+    
+    // Payment Details
+    doc.setFontSize(14);
+    doc.text("Payment Details", 20, 169);
+    doc.setFontSize(12);
+    doc.text(`Payment Method: ${paymentMethods.find(p => p.id === paymentMethod)?.name || paymentMethod}`, 20, 179);
+    doc.text(`Base Amount: ₹${totalAmount.toFixed(2)}`, 20, 186);
+    doc.text(`Tax (18%): ₹${taxAmount.toFixed(2)}`, 20, 193);
+    
+    // Total
+    doc.setFontSize(14);
+    doc.setTextColor(41, 128, 185);
+    doc.text(`Total Amount: ₹${totalPayable.toFixed(2)}`, 20, 203);
+    
+    // Footer
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text("Thank you for choosing RideEasy! For any assistance, call +91-9876543210.", 105, 270, { align: 'center' });
+    doc.text("© 2025 RideEasy Rentals. All rights reserved.", 105, 275, { align: 'center' });
+    
+    // Save the PDF
+    doc.save(`RideEasy_Invoice_${bookingId}.pdf`);
   };
   
   // Get today's date in YYYY-MM-DD format for min attribute
@@ -459,51 +529,22 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
               
               <div>
                 <h4 className="font-medium text-gray-700 mb-2">Payment Method</h4>
-                <div className="bg-gray-50 p-3 rounded-md space-y-2">
-                  <label className="flex items-center">
-                    <input 
-                      type="radio" 
-                      name="paymentMethod" 
-                      value="upi" 
-                      checked={paymentMethod === 'upi'} 
-                      onChange={handlePaymentMethodChange} 
-                      className="mr-2"
-                    />
-                    <span>UPI</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input 
-                      type="radio" 
-                      name="paymentMethod" 
-                      value="card" 
-                      checked={paymentMethod === 'card'} 
-                      onChange={handlePaymentMethodChange} 
-                      className="mr-2"
-                    />
-                    <span>Credit/Debit Card</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input 
-                      type="radio" 
-                      name="paymentMethod" 
-                      value="netbanking" 
-                      checked={paymentMethod === 'netbanking'} 
-                      onChange={handlePaymentMethodChange} 
-                      className="mr-2"
-                    />
-                    <span>Net Banking</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input 
-                      type="radio" 
-                      name="paymentMethod" 
-                      value="wallet" 
-                      checked={paymentMethod === 'wallet'} 
-                      onChange={handlePaymentMethodChange} 
-                      className="mr-2"
-                    />
-                    <span>Wallet</span>
-                  </label>
+                <div className="bg-gray-50 p-3 rounded-md">
+                  <Select
+                    value={paymentMethod}
+                    onValueChange={handlePaymentMethodChange}
+                  >
+                    <SelectTrigger className="w-full bg-white">
+                      <SelectValue placeholder="Select payment method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentMethods.map((method) => (
+                        <SelectItem key={method.id} value={method.id}>
+                          {method.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               
@@ -572,19 +613,24 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
         </div>
       )}
       
-      {/* Booking Success Modal */}
+      {/* Booking Success Modal with Lottie Animation */}
       {bookingConfirmed && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full animate-scale-in">
             <div className="text-center mb-6">
-              <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-                <Check className="text-green-500" size={40} />
-              </div>
+              <div className="h-32 w-32 mx-auto mb-4" ref={lottieContainerRef}></div>
+              
               <h3 className="text-2xl font-bold text-green-600 mb-2">Booking Confirmed!</h3>
               <p className="text-gray-600">Your payment was successful and your booking is confirmed.</p>
             </div>
             
-            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-md p-4 mb-6 border border-cyan-100">
+            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-md p-5 mb-6 border border-cyan-100">
+              <h4 className="font-semibold text-lg text-center mb-4 text-cyan-800">Booking Invoice</h4>
+              
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Booking ID:</span>
+                <span className="font-medium">{bookingId}</span>
+              </div>
               <div className="flex justify-between mb-2">
                 <span className="text-gray-600">Bike:</span>
                 <span className="font-medium">{bike.name}</span>
@@ -594,12 +640,24 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
                 <span className="font-medium">{days} days ({formatDate(startDate)} to {formatDate(endDate)})</span>
               </div>
               <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Customer:</span>
+                <span className="font-medium">{profile ? `${profile.first_name} ${profile.last_name}` : "User"}</span>
+              </div>
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Email:</span>
+                <span className="font-medium">{user?.email}</span>
+              </div>
+              <div className="flex justify-between mb-2">
                 <span className="text-gray-600">Pickup Location:</span>
                 <span className="font-medium">{pickupLocation}</span>
               </div>
               <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Payment ID:</span>
-                <span className="font-medium">{paymentId}</span>
+                <span className="text-gray-600">Payment Method:</span>
+                <span className="font-medium">{paymentMethods.find(p => p.id === paymentMethod)?.name || paymentMethod}</span>
+              </div>
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Booking Date:</span>
+                <span className="font-medium">{formatDateWithTime(new Date())}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-cyan-200 mt-2">
                 <span className="font-bold">Total Paid:</span>
@@ -611,23 +669,34 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
               <p className="text-gray-600 mb-4">
                 A confirmation email has been sent to your email address with all the booking details.
               </p>
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
                 <button 
-                  className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-100 py-2 px-4 rounded-md font-medium transition-colors"
-                  onClick={() => navigate('/bookings')}
+                  className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-100 py-3 px-4 rounded-md font-medium transition-colors flex items-center justify-center"
+                  onClick={generateInvoicePDF}
                 >
-                  View My Bookings
+                  <Download size={18} className="mr-2" />
+                  Download Invoice
                 </button>
                 <button 
-                  className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-4 rounded-md font-medium transition-colors"
+                  className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white py-3 px-4 rounded-md font-medium transition-colors"
                   onClick={() => {
                     setShowBookingModal(false);
                     setBookingConfirmed(false);
+                    navigate('/bookings');
                   }}
                 >
-                  Close
+                  View My Bookings
                 </button>
               </div>
+              <button 
+                className="mt-4 text-gray-500 hover:text-gray-700"
+                onClick={() => {
+                  setShowBookingModal(false);
+                  setBookingConfirmed(false);
+                }}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
