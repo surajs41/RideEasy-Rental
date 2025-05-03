@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '../hooks/use-toast';
 import { Calendar, Plus, Minus, Check, MapPin, ChevronDown, ArrowLeft, FileText, Download } from 'lucide-react';
 import { Bike } from '../types';
@@ -23,6 +22,7 @@ interface BikeDetailProps {
 
 const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { user, profile } = useAuth();
   
@@ -37,6 +37,7 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
   const [bookingId, setBookingId] = useState('');
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [bookingWarning, setBookingWarning] = useState(false);
   const lottieContainerRef = useRef<HTMLDivElement>(null);
   
   // Calculate end date based on start date and days
@@ -89,6 +90,7 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
       return;
     }
     
+    console.log('Booking bike with id:', bike.id, typeof bike.id);
     setShowBookingModal(true);
   };
   
@@ -159,15 +161,9 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
       });
       return;
     }
-    
     try {
       const newBookingId = generateBookingId();
-      setBookingId(newBookingId);
-      
-      // Get payment method name
       const paymentMethodName = paymentMethods.find(p => p.id === paymentMethod)?.name || paymentMethod;
-      
-      // Store booking in Supabase
       const bookingDetails = {
         bike_id: bike.id,
         user_id: user?.id,
@@ -177,29 +173,35 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
         payment_id: `${paymentMethod}-${newBookingId}`,
         payment_status: 'completed',
         booking_status: 'confirmed',
-        payment_method: paymentMethodName
+        payment_method: paymentMethodName,
+        pickup_location: pickupLocation,
+        dropoff_location: dropoffLocation,
+        booking_id: newBookingId,
+        created_at: new Date().toISOString()
       };
-      
-      console.log('Submitting booking details:', bookingDetails);
-      
       const { error } = await supabase.from('bookings').insert(bookingDetails);
-      
       if (error) {
-        console.error('Supabase booking error:', error);
-        throw error;
+        console.error('Supabase insert error:', error);
+        toast({
+          title: "Error",
+          description: `There was an error confirming your booking: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
       }
-      
-      // Send confirmation email
       await sendConfirmationEmail(newBookingId);
-      
-      // Show confirmation and success message
+      setBookingId(newBookingId);
       setBookingConfirmed(true);
+      setShowBookingModal(false);
+      setBookingWarning(false);
       toast({
         title: "Booking Confirmed!",
         description: `Your ${bike.name} is booked for ${days} days.`,
       });
+      setTimeout(() => {
+        navigate('/bookings');
+      }, 2000);
     } catch (error) {
-      console.error('Error during booking confirmation:', error);
       toast({
         title: "Error",
         description: "There was an error confirming your booking. Please contact support.",
@@ -208,13 +210,82 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
     }
   };
   
+  // Helper to generate a random invoice number
+  const generateInvoiceNumber = () => {
+    const prefix = 'INV';
+    const randomPart = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    return `${prefix}${randomPart}`;
+  };
+  
+  const generateInvoicePDFBase64 = async () => {
+    const invoiceNumber = generateInvoiceNumber();
+    const gstNumber = '27AAECR1234F1ZV'; // Example GST number
+    const doc = new jsPDF();
+    // Border
+    doc.setDrawColor(41, 128, 185);
+    doc.setLineWidth(1.5);
+    doc.rect(10, 10, 190, 277, 'S');
+    // Header
+    doc.setFontSize(24);
+    doc.setTextColor(41, 128, 185);
+    doc.text('RideEasy', 20, 25);
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text('GSTIN: ' + gstNumber, 150, 25);
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(16);
+    doc.text('Booking Invoice', 20, 40);
+    doc.setFontSize(12);
+    doc.text(`Invoice No: ${invoiceNumber}`, 150, 40);
+    doc.text(`Invoice Date: ${formatDateWithTime(new Date())}`, 20, 48);
+    doc.line(10, 52, 200, 52);
+    // Customer Info
+    doc.setFontSize(13);
+    doc.text('Customer Information', 20, 60);
+    doc.setFontSize(11);
+    doc.text(`Name: ${profile ? `${profile.first_name} ${profile.last_name}` : "User"}`, 20, 68);
+    doc.text(`Email: ${user?.email || ""}`, 20, 74);
+    // Bike Info
+    doc.setFontSize(13);
+    doc.text('Bike Details', 20, 86);
+    doc.setFontSize(11);
+    doc.text(`Bike: ${bike.name}`, 20, 92);
+    doc.text(`Type: ${bike.type}`, 20, 98);
+    // Rental Info
+    doc.setFontSize(13);
+    doc.text('Rental Details', 20, 110);
+    doc.setFontSize(11);
+    doc.text(`Pickup Location: ${pickupLocation}`, 20, 116);
+    doc.text(`Pickup Date: ${formatDate(startDate)}`, 20, 122);
+    doc.text(`Return Date: ${formatDate(endDate)}`, 20, 128);
+    doc.text(`Duration: ${days} days`, 20, 134);
+    // Payment Info
+    doc.setFontSize(13);
+    doc.text('Payment Details', 20, 146);
+    doc.setFontSize(11);
+    doc.text(`Payment Method: ${paymentMethods.find(p => p.id === paymentMethod)?.name || paymentMethod}`, 20, 152);
+    doc.text(`Base Amount: ₹${totalAmount.toFixed(2)}`, 20, 158);
+    doc.text(`Tax (18%): ₹${taxAmount.toFixed(2)}`, 20, 164);
+    doc.setFontSize(13);
+    doc.setTextColor(41, 128, 185);
+    doc.text(`Total Amount: ₹${totalPayable.toFixed(2)}`, 20, 176);
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Thank you for choosing RideEasy! For any assistance, call +91-9876543210.', 105, 270, { align: 'center' });
+    doc.text('© 2025 RideEasy Rentals. All rights reserved.', 105, 275, { align: 'center' });
+    return doc.output('datauristring').split(',')[1];
+  };
+  
   const sendConfirmationEmail = async (bookingId: string) => {
     try {
+      // Generate PDF as base64
+      const pdfBase64 = await generateInvoicePDFBase64();
       // Send email using Supabase Edge Function
-      await supabase.functions.invoke('send-confirmation', {
+      const { error } = await supabase.functions.invoke('send-confirmation', {
         body: {
           name: profile ? `${profile.first_name} ${profile.last_name}` : "User",
           email: user?.email,
+          profileEmail: profile?.email,
           bikeName: bike.name,
           startDate: formatDate(startDate),
           endDate: formatDate(endDate),
@@ -223,14 +294,22 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
           pickupLocation,
           dropoffLocation,
           paymentMethod: paymentMethods.find(p => p.id === paymentMethod)?.name || paymentMethod,
+          days: days,
+          bookingDate: formatDateWithTime(new Date()),
+          pdfBase64 // Attach PDF
         }
       });
+      if (error) {
+        console.error('Error sending confirmation email:', error);
+      }
     } catch (error) {
       console.error('Error sending confirmation email:', error);
     }
   };
   
   const handlePayNow = () => {
+    setBookingConfirmed(true);
+    setShowBookingModal(false);
     processBookingConfirmation();
   };
   
@@ -347,9 +426,9 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Bike Image */}
         <div className="h-80 md:h-full overflow-hidden">
-          <div className="relative h-full w-full perspective-1000">
+          <div className="relative h-full w-full bg-gray-100">
             <img 
-              src={bike.imageUrl || bikePlaceholder} 
+              src={bike.imageUrl.replace('.jpg', '.avif')} 
               alt={bike.name} 
               className="w-full h-full object-cover transform transition-transform duration-500 hover:scale-105 rounded-lg shadow-lg"
               onError={(e) => {
@@ -357,6 +436,7 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
                 target.onerror = null;
                 target.src = bikePlaceholder;
               }}
+              loading="lazy"
             />
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black/30 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
           </div>
@@ -588,7 +668,7 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
                 Cancel
               </button>
               <button 
-                className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+                className={`flex-1 py-3 px-4 rounded-md font-medium transition-colors text-base h-12 min-w-[140px] bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-md flex items-center justify-center ${
                   termsAgreed 
                     ? 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white' 
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -624,85 +704,36 @@ const BikeDetail: React.FC<BikeDetailProps> = ({ bike }) => {
       {/* Booking Success Modal with Lottie Animation */}
       {bookingConfirmed && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full animate-scale-in">
-            <div className="text-center mb-6">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full animate-scale-in flex flex-col max-h-[90vh]">
+            <div className="text-center mb-6 overflow-y-auto flex-1">
               <div className="h-32 w-32 mx-auto mb-4" ref={lottieContainerRef}></div>
-              
               <h3 className="text-2xl font-bold text-green-600 mb-2">Booking Confirmed!</h3>
               <p className="text-gray-600">Your payment was successful and your booking is confirmed.</p>
+              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-md p-5 mb-6 border border-cyan-100">
+                <h4 className="font-semibold text-lg text-center mb-4 text-cyan-800">Booking Invoice</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between"><span className="text-gray-600">Booking ID:</span><span className="font-medium">{bookingId}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Bike:</span><span className="font-medium">{bike.name}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Duration:</span><span className="font-medium">{days} days ({formatDate(startDate)} to {formatDate(endDate)})</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Customer:</span><span className="font-medium">{profile ? `${profile.first_name} ${profile.last_name}` : "User"}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Email:</span><span className="font-medium">{user?.email}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Pickup Location:</span><span className="font-medium">{pickupLocation}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Payment Method:</span><span className="font-medium">{paymentMethods.find(p => p.id === paymentMethod)?.name || paymentMethod}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Booking Date:</span><span className="font-medium">{formatDateWithTime(new Date())}</span></div>
+                  <div className="flex justify-between pt-2 border-t border-cyan-200 mt-2"><span className="font-bold">Total Paid:</span><span className="font-bold text-cyan-600">₹{totalPayable.toFixed(2)}</span></div>
+                </div>
+              </div>
+              <p className="text-gray-600 mb-4">A confirmation email has been sent to your email address with all the booking details.</p>
             </div>
-            
-            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-md p-5 mb-6 border border-cyan-100">
-              <h4 className="font-semibold text-lg text-center mb-4 text-cyan-800">Booking Invoice</h4>
-              
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Booking ID:</span>
-                <span className="font-medium">{bookingId}</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Bike:</span>
-                <span className="font-medium">{bike.name}</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Duration:</span>
-                <span className="font-medium">{days} days ({formatDate(startDate)} to {formatDate(endDate)})</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Customer:</span>
-                <span className="font-medium">{profile ? `${profile.first_name} ${profile.last_name}` : "User"}</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Email:</span>
-                <span className="font-medium">{user?.email}</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Pickup Location:</span>
-                <span className="font-medium">{pickupLocation}</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Payment Method:</span>
-                <span className="font-medium">{paymentMethods.find(p => p.id === paymentMethod)?.name || paymentMethod}</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Booking Date:</span>
-                <span className="font-medium">{formatDateWithTime(new Date())}</span>
-              </div>
-              <div className="flex justify-between pt-2 border-t border-cyan-200 mt-2">
-                <span className="font-bold">Total Paid:</span>
-                <span className="font-bold text-cyan-600">₹{totalPayable.toFixed(2)}</span>
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <p className="text-gray-600 mb-4">
-                A confirmation email has been sent to your email address with all the booking details.
-              </p>
-              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-                <button 
-                  className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-100 py-3 px-4 rounded-md font-medium transition-colors flex items-center justify-center"
-                  onClick={generateInvoicePDF}
-                >
-                  <Download size={18} className="mr-2" />
-                  Download Invoice
-                </button>
-                <button 
-                  className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white py-3 px-4 rounded-md font-medium transition-colors"
-                  onClick={() => {
-                    setShowBookingModal(false);
-                    setBookingConfirmed(false);
-                    navigate('/bookings');
-                  }}
-                >
-                  View My Bookings
-                </button>
-              </div>
-              <button 
-                className="mt-4 text-gray-500 hover:text-gray-700"
-                onClick={() => {
-                  setShowBookingModal(false);
-                  setBookingConfirmed(false);
-                }}
-              >
+            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-2 border-t border-gray-100 bg-white sticky bottom-0 z-10">
+              <button className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-100 py-3 px-4 rounded-md font-medium transition-colors flex items-center justify-center" onClick={generateInvoicePDF}>
+                <Download size={18} className="mr-2" />
+                Download Invoice
+              </button>
+              <button className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white py-3 px-4 rounded-md font-medium transition-colors" onClick={() => { setBookingConfirmed(false); navigate('/bookings'); }}>
+                View My Bookings
+              </button>
+              <button className="mt-4 text-gray-500 hover:text-gray-700 sm:mt-0" onClick={() => { setBookingConfirmed(false); }}>
                 Close
               </button>
             </div>

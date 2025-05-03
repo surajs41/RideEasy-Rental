@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -36,9 +35,10 @@ const LoginPage = () => {
                   }}
                 >
                   <img 
-                    src="https://cdn.iconscout.com/icon/free/png-256/free-motorcycle-2022208-1703756.png" 
-                    alt="Motorcycle" 
-                    className="w-32 h-32 object-contain" 
+                    src="/images/bikes/RideEasy.png" 
+                    alt="RideEasy Logo" 
+                    className="w-48 h-48 object-contain" 
+                    style={{ maxWidth: '300px' }}
                   />
                 </motion.div>
               </div>

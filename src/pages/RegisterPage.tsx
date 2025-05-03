@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -46,9 +45,10 @@ const RegisterPage = () => {
                   }}
                 >
                   <img 
-                    src="https://cdn-icons-png.flaticon.com/512/7641/7641402.png" 
-                    alt="Motorcycle Registration" 
-                    className="w-32 h-32 object-contain" 
+                    src="/images/bikes/RideEasy.png" 
+                    alt="RideEasy Logo" 
+                    className="w-48 h-48 object-contain" 
+                    style={{ maxWidth: '300px' }}
                   />
                 </motion.div>
               </div>

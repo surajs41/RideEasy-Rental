@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bike as BikeIcon } from 'lucide-react';
 import { Bike } from '../types';
@@ -9,20 +8,29 @@ interface BikeCardProps {
 }
 
 const BikeCard: React.FC<BikeCardProps> = ({ bike }) => {
+  const [imageError, setImageError] = useState(false);
   const bikePlaceholder = 'https://placehold.co/600x400/e2e8f0/475569?text=Bike+Image';
+  
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  // Try .avif format first, then fall back to .jpg
+  const getImageUrl = () => {
+    if (imageError) return bikePlaceholder;
+    const baseUrl = bike.imageUrl.replace('.jpg', '');
+    return `${baseUrl}.avif`;
+  };
   
   return (
     <div className="bike-card group">
-      <div className="relative overflow-hidden rounded-t-lg">
+      <div className="relative overflow-hidden rounded-t-lg h-48 bg-gray-100">
         <img 
-          src={bike.imageUrl || bikePlaceholder}
+          src={getImageUrl()}
           alt={bike.name}
-          className="bike-card-image group-hover:scale-105 transition-transform duration-500"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.onerror = null;
-            target.src = bikePlaceholder;
-          }}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          onError={handleImageError}
+          loading="lazy"
         />
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
           <div className="p-4 w-full">

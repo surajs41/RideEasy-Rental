@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Search, User, BookOpen, LogOut, Settings } from 'lucide-react';
@@ -37,9 +36,7 @@ const Navbar = () => {
       <div className="container mx-auto px-4 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center">
-          <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-brand-orange">
-            Ride<span className="text-brand-orange">Easy</span>
-          </span>
+          <img src="/images/bikes/RideEasy.png" alt="RideEasy Logo" className="h-20 mx-auto" style={{ maxWidth: '300px' }} />
         </Link>
 
         {/* Desktop Navigation */}
