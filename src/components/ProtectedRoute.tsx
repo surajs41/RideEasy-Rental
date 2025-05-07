@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +16,21 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, isLoading, profile } = useAuth();
   const location = useLocation();
 
+  // Check for admin session in localStorage
+  const checkAdminSession = () => {
+    const userJson = localStorage.getItem('rideEasyUser');
+    if (userJson) {
+      try {
+        const userData = JSON.parse(userJson);
+        return userData.role === 'admin';
+      } catch (error) {
+        console.error("Error parsing admin user data:", error);
+        return false;
+      }
+    }
+    return false;
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -25,12 +39,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  if (!user) {
-    return <Navigate to={redirectPath} state={{ from: location }} replace />;
+  // For admin routes
+  if (adminOnly) {
+    const isAdmin = checkAdminSession();
+    if (!isAdmin) {
+      return <Navigate to={redirectPath} state={{ from: location }} replace />;
+    }
+    return <>{children}</>;
   }
 
-  if (adminOnly && profile?.role !== 'admin') {
-    return <Navigate to="/" replace />;
+  // For regular user routes
+  if (!user) {
+    return <Navigate to={redirectPath} state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

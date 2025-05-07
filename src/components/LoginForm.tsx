@@ -3,6 +3,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 import { signIn } from '@/lib/auth';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = 'https://fwaihhjyrvinsgciktic.supabase.co'; // Replace with your Supabase URL
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3YWloaGp5cnZpbnNnY2lrdGljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwNzAwMjYsImV4cCI6MjA2MTY0NjAyNn0.8bt77Y6BKTR8wAnUQG7NzXnc1rDuJlwE2vaTlsyBk7k'; // Replace with your Supabase anon key
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -72,7 +78,7 @@ const LoginForm = () => {
       // Admin login check
       if (isAdmin) {
         if (formData.email === 'admin@bike.in' && formData.password === 'admin@123') {
-          // For demo admin login
+          // Store admin session
           localStorage.setItem('rideEasyUser', JSON.stringify({
             id: 'admin-123',
             firstName: 'Admin',
@@ -86,8 +92,7 @@ const LoginForm = () => {
             description: "Welcome to the admin dashboard.",
           });
           
-          // Use direct window.location.href navigation to ensure full page reload
-          window.location.href = '/admin';
+          navigate('/admin');
           return;
         } else {
           toast({
@@ -127,6 +132,48 @@ const LoginForm = () => {
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  const handleDelete = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+    if (!error) {
+      // setUsers(users.filter(u => u.id !== userId));
+    } else {
+      alert('Failed to delete user: ' + error.message);
+      console.error('Supabase delete error:', error);
+    }
+  };
+
+  const fetchBikes = async () => {
+    setIsLoading(true);
+    setErrors({
+      ...errors,
+      general: ''
+    });
+    try {
+      const { data, error } = await supabase.from('bikes').select('*');
+      console.log('Fetched bikes:', data, 'Error:', error);
+      if (error) {
+        setErrors({
+          ...errors,
+          general: error.message || 'Failed to fetch bikes. Please try again later.'
+        });
+      } else {
+        // Handle fetched bikes data
+      }
+    } catch (error: any) {
+      console.error('Supabase bikes fetch error:', error);
+      setErrors({
+        ...errors,
+        general: error.message || 'Failed to fetch bikes. Please try again later.'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -169,7 +216,7 @@ const LoginForm = () => {
             className="input-field"
             value={formData.email}
             onChange={handleInputChange}
-            placeholder={isAdmin ? "admin@bike.in" : "your@email.com"}
+            placeholder="Enter your email"
           />
           {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
         </div>
@@ -186,7 +233,7 @@ const LoginForm = () => {
               className="input-field pr-10"
               value={formData.password}
               onChange={handleInputChange}
-              placeholder={isAdmin ? "admin@123" : "••••••••"}
+              placeholder="Enter your password"
             />
             <button
               type="button"
@@ -199,7 +246,7 @@ const LoginForm = () => {
           {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
         </div>
         
-        <button 
+        <button
           type="submit" 
           className="w-full btn-primary relative"
           disabled={isLoading}
