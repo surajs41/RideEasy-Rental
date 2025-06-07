@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import DashboardOverview from './DashboardOverview';
 import UsersManagement from './UsersManagement';
 import BikesManagement from './BikesManagement';
+import AdminBookingsList from './AdminBookingsList';
 
 interface AdminLayoutProps {
   children?: React.ReactNode;
@@ -40,7 +41,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { id: 'users', label: 'Users', icon: Users },
     { id: 'bikes', label: 'Bikes', icon: Bike },
     { id: 'bookings', label: 'Bookings', icon: Calendar },
-    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   const renderContent = () => {
@@ -52,19 +52,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       case 'bikes':
         return <BikesManagement />;
       case 'bookings':
-        return (
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <p className="text-gray-600">View and manage bookings, check payment status, etc.</p>
-            <p className="mt-4 text-gray-500">Coming soon...</p>
-          </div>
-        );
-      case 'settings':
-        return (
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <p className="text-gray-600">Configure system settings, manage admin access, etc.</p>
-            <p className="mt-4 text-gray-500">Coming soon...</p>
-          </div>
-        );
+        return <AdminBookingsList />;
+      
       default:
         return children;
     }
@@ -88,35 +77,39 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             animate={{ x: 0 }}
             exit={{ x: -300 }}
             transition={{ type: "spring", damping: 20 }}
-            className="fixed md:relative w-64 h-screen bg-brand-dark-blue text-white z-40"
+            className="fixed md:relative w-64 h-screen bg-gradient-to-b from-red-600 via-red-400 to-white text-white z-40"
           >
-            <div className="p-6">
-              <h2 className="text-xl font-bold">RideEasy Admin</h2>
+            <div className="p-6 flex items-center gap-3">
+              <img src="/images/bikes/RideEasy.png" alt="RideEasy Logo" className="h-10 w-10 object-contain" />
+              <span className="text-xl font-bold">RideEasy Admin Dashboard</span>
             </div>
 
-            <nav className="mt-6">
-              {menuItems.map((item) => (
+            <nav className="mt-6 flex flex-col">
+              <div>
+                {menuItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    className={`flex items-center w-full px-6 py-3 transition-all ${
+                      activeSection === item.id
+                        ? 'bg-brand-blue/30 border-l-4 border-white'
+                        : 'hover:bg-brand-blue/20'
+                    }`}
+                  >
+                    <item.icon size={20} />
+                    <span className="ml-3">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className=" mb-12">
                 <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  className={`flex items-center w-full px-6 py-3 transition-all ${
-                    activeSection === item.id
-                      ? 'bg-brand-blue/30 border-l-4 border-white'
-                      : 'hover:bg-brand-blue/20'
-                  }`}
+                  onClick={handleLogout}
+                  className="flex items-center w-full px-6 py-3 text-black hover:bg-red-500/20 transition-all"
                 >
-                  <item.icon size={20} />
-                  <span className="ml-3">{item.label}</span>
+                  <LogOut size={20} />
+                  <span className="ml-3">Logout</span>
                 </button>
-              ))}
-
-              <button
-                onClick={handleLogout}
-                className="flex items-center w-full px-6 py-3 mt-8 text-red-300 hover:text-red-200 hover:bg-red-500/20 transition-all"
-              >
-                <LogOut size={20} />
-                <span className="ml-3">Logout</span>
-              </button>
+              </div>
             </nav>
           </motion.div>
         )}

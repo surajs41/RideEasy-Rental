@@ -1,34 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Bike, Download, FileText, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { bikes } from '../data/bikes';
 import { jsPDF } from 'jspdf';
+import { toast } from 'react-toastify';
 
 const BookingsList = () => {
   const { user, profile } = useAuth();
-  const [bookings, setBookings] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   
-  React.useEffect(() => {
-    const fetchBookings = async () => {
-      if (!user) return;
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      if (!error && data) {
-        setBookings(data);
-      } else {
-        setBookings([]);
-      }
-      setLoading(false);
-    };
+  const fetchBookings = async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    setBookings(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchBookings();
+    if (!user) return;
+    const channel = supabase
+      .channel('user-bookings')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `user_id=eq.${user.id}` }, () => {
+        fetchBookings();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const getBikeDetails = (bikeId: string) => bikes.find(b => b.id === bikeId);
@@ -170,6 +176,19 @@ y += 30;
     setShowInvoiceModal(true);
   };
 
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    const { error } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('booking_id', bookingId);
+    if (error) {
+      toast.error('Failed to cancel booking: ' + error.message);
+    } else {
+      toast.success('Booking successfully cancelled ✅');
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-8">Loading bookings...</div>;
   }
@@ -192,11 +211,20 @@ y += 30;
       {bookings.map((booking: any, index: number) => {
         const bike = getBikeDetails(booking.bike_id);
         return (
-          <div key={booking.id || index} className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div key={booking.booking_id || booking.id || index} className="bg-white shadow-md rounded-lg overflow-hidden">
             <div className="bg-brand-blue text-white py-3 px-4 flex justify-between items-center">
               <h3 className="font-semibold">Booking #{index + 1}</h3>
-              <span className="bg-white text-brand-blue text-sm font-bold py-1 px-3 rounded-full">
-                {booking.booking_status || 'Confirmed'}
+              <span className={
+                booking.status === 'confirmed' ? 'bg-green-100 text-green-700 px-2 py-1 rounded font-semibold' :
+                booking.status === 'rejected' ? 'bg-red-100 text-red-700 px-2 py-1 rounded font-semibold' :
+                booking.status === 'cancelled' ? 'bg-yellow-100 text-yellow-700 px-2 py-1 rounded font-semibold' :
+                'bg-gray-100 text-gray-700 px-2 py-1 rounded font-semibold'
+              }>
+                {booking.status === 'pending' ? 'Pending – Waiting for Approval' :
+                 booking.status === 'confirmed' ? 'Confirmed' :
+                 booking.status === 'rejected' ? 'Rejected' :
+                 booking.status === 'cancelled' ? 'Cancelled' :
+                 booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1)}
               </span>
             </div>
             <div className="p-4">
@@ -253,6 +281,14 @@ y += 30;
                   <FileText size={16} className="mr-1" />
                   View Details
                 </button>
+                {booking.status === 'pending' && (
+                  <button
+                    className="bg-yellow-500 text-white px-2 py-1 rounded"
+                    onClick={() => handleCancelBooking(booking.booking_id)}
+                  >
+                    Cancel
+                  </button>
+                )}
               </div>
             </div>
           </div>

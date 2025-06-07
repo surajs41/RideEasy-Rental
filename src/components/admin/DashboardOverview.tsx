@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { Bike, Users, Calendar, DollarSign } from 'lucide-react';
 import {
@@ -19,70 +20,129 @@ import {
   Cell
 } from 'recharts';
 
-// Mock data for demonstration
-const dailyUsers = [
-  { date: 'Mon', users: 4 },
-  { date: 'Tue', users: 3 },
-  { date: 'Wed', users: 5 },
-  { date: 'Thu', users: 2 },
-  { date: 'Fri', users: 6 },
-  { date: 'Sat', users: 8 },
-  { date: 'Sun', users: 7 },
-];
-
-const dailyRentals = [
-  { date: 'Mon', rentals: 12 },
-  { date: 'Tue', rentals: 15 },
-  { date: 'Wed', rentals: 10 },
-  { date: 'Thu', rentals: 18 },
-  { date: 'Fri', rentals: 20 },
-  { date: 'Sat', rentals: 25 },
-  { date: 'Sun', rentals: 22 },
-];
-
-const bikeCategories = [
-  { name: 'Sports', value: 35 },
-  { name: 'Cruiser', value: 25 },
-  { name: 'Adventure', value: 20 },
-  { name: 'Scooter', value: 20 },
-];
-
-const monthlyRevenue = [
-  { month: 'Jan', revenue: 4000 },
-  { month: 'Feb', revenue: 5000 },
-  { month: 'Mar', revenue: 4500 },
-  { month: 'Apr', revenue: 6000 },
-  { month: 'May', revenue: 5500 },
-  { month: 'Jun', revenue: 7000 },
-];
-
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 const DashboardOverview = () => {
-  const stats = [
+  const [stats, setStats] = useState({
+    users: 0,
+    bikes: 0,
+    bookings: 0,
+    revenue: 0,
+  });
+
+  const [dailyUsers, setDailyUsers] = useState([]);
+  const [dailyRentals, setDailyRentals] = useState([]);
+  const [bikeCategories, setBikeCategories] = useState([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState([]);
+
+  async function fetchStats() {
+    // Users
+    const { count: userCount } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true });
+    // Bikes
+    const { count: bikeCount } = await supabase
+      .from('bikes')
+      .select('id', { count: 'exact', head: true });
+    // Bookings & Revenue
+    const { data: bookingsData } = await supabase
+      .from('bookings')
+      .select('total_amount');
+    const bookings = bookingsData ? bookingsData.length : 0;
+    const revenue = bookingsData ? bookingsData.reduce((sum, b) => sum + (b.total_amount || 0), 0) : 0;
+    setStats({
+      users: userCount || 0,
+      bikes: bikeCount || 0,
+      bookings,
+      revenue,
+    });
+  }
+
+  useEffect(() => {
+    fetchStats();
+    const channel = supabase
+      .channel('dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bikes' }, fetchStats)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchStats)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, fetchStats)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  useEffect(() => {
+    async function fetchChartData() {
+      // Daily New Users (group by created_at date)
+      const { data: usersData } = await supabase
+        .from('profiles')
+        .select('created_at');
+      if (usersData) {
+        const daily = {};
+        usersData.forEach(u => {
+          const date = u.created_at.slice(0, 10);
+          daily[date] = (daily[date] || 0) + 1;
+        });
+        setDailyUsers(Object.entries(daily).map(([date, users]) => ({ date, users })));
+      }
+      // Daily Rentals (group by created_at date)
+      const { data: bookingsData } = await supabase
+        .from('bookings')
+        .select('created_at');
+      if (bookingsData) {
+        const daily = {};
+        bookingsData.forEach(b => {
+          const date = b.created_at.slice(0, 10);
+          daily[date] = (daily[date] || 0) + 1;
+        });
+        setDailyRentals(Object.entries(daily).map(([date, rentals]) => ({ date, rentals })));
+      }
+      // Bike Categories (group by type)
+      const { data: bikesData } = await supabase
+        .from('bikes')
+        .select('type');
+      if (bikesData) {
+        const categories = {};
+        bikesData.forEach(b => {
+          categories[b.type] = (categories[b.type] || 0) + 1;
+        });
+        setBikeCategories(Object.entries(categories).map(([name, value]) => ({ name, value })));
+      }
+      // Monthly Revenue (group by month from bookings)
+      const { data: revenueData } = await supabase
+        .from('bookings')
+        .select('created_at,total_amount');
+      if (revenueData) {
+        const monthly = {};
+        revenueData.forEach(b => {
+          const month = b.created_at.slice(0, 7); // YYYY-MM
+          monthly[month] = (monthly[month] || 0) + (b.total_amount || 0);
+        });
+        setMonthlyRevenue(Object.entries(monthly).map(([month, revenue]) => ({ month, revenue })));
+      }
+    }
+    fetchChartData();
+    // Optionally, subscribe to real-time changes and refetch
+  }, []);
+
+  const cards = [
     {
-      title: 'Total Bikes',
-      value: '24',
-      icon: Bike,
-      color: 'bg-blue-500',
+      label: 'Total Users',
+      value: stats.users,
+      icon: <Users className="text-blue-500" size={32} />,
     },
     {
-      title: "Today's Rentals",
-      value: '12',
-      icon: Calendar,
-      color: 'bg-green-500',
+      label: 'Total Bikes',
+      value: stats.bikes,
+      icon: <Bike className="text-green-500" size={32} />,
     },
     {
-      title: 'New Users',
-      value: '8',
-      icon: Users,
-      color: 'bg-purple-500',
+      label: 'Total Bookings',
+      value: stats.bookings,
+      icon: <Calendar className="text-yellow-500" size={32} />,
     },
     {
-      title: "Today's Revenue",
-      value: '₹12,500',
-      icon: DollarSign,
-      color: 'bg-yellow-500',
+      label: 'Total Revenue',
+      value: `₹${stats.revenue.toLocaleString()}`,
+      icon: <DollarSign className="text-purple-500" size={32} />,
     },
   ];
 
@@ -90,9 +150,9 @@ const DashboardOverview = () => {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
+        {cards.map((card, index) => (
           <motion.div
-            key={stat.title}
+            key={card.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
@@ -100,11 +160,11 @@ const DashboardOverview = () => {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm">{stat.title}</p>
-                <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
+                <p className="text-gray-500 text-sm">{card.label}</p>
+                <h3 className="text-2xl font-bold mt-1">{card.value}</h3>
               </div>
-              <div className={`p-3 rounded-full ${stat.color} text-white`}>
-                <stat.icon size={24} />
+              <div className="p-3 rounded-full bg-gray-100 flex items-center justify-center">
+                {card.icon}
               </div>
             </div>
           </motion.div>
