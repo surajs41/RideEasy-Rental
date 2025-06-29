@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -15,6 +14,7 @@ const ContactPage = () => {
     subject: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showThankYouModal, setShowThankYouModal] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
@@ -29,7 +29,7 @@ const ContactPage = () => {
 
     try {
       // Send the form data to Formspree
-      const response = await fetch('https://formspree.io/f/mqaprnqz', {
+      const response = await fetch('https://formspree.io/f/mgvyrgoz', {
         method: 'POST',
         body: JSON.stringify({
           name: formData.name,
@@ -64,6 +64,7 @@ const ContactPage = () => {
         phone: '',
         subject: '',
       });
+      setShowThankYouModal(true);
     } catch (error) {
       console.error("Error sending contact form:", error);
       toast({
@@ -162,7 +163,7 @@ const ContactPage = () => {
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h2 className="text-2xl font-bold mb-6">Send Us a Message</h2>
                 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} className="w-full">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label htmlFor="name" className="block text-gray-700 font-medium mb-1">Your Name</label>
@@ -245,6 +246,25 @@ const ContactPage = () => {
                     {isSubmitting ? 'Sending...' : 'Send Message'}
                   </button>
                 </form>
+                {/* Thank You Modal Popup */}
+                {showThankYouModal && (
+                  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 animate-fade-in">
+                    <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full flex flex-col items-center">
+                      <svg className="mb-4" width="48" height="48" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="32" cy="32" r="32" fill="#22c55e" fillOpacity="0.15"/>
+                        <path d="M20 34L29 43L44 26" stroke="#22c55e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <h3 className="text-xl font-bold text-green-600 mb-2 text-center">Thank you for your feedback</h3>
+                      <p className="text-gray-700 text-center mb-4">We will reach you soon ...</p>
+                      <button
+                        className="mt-2 px-6 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600 transition"
+                        onClick={() => setShowThankYouModal(false)}
+                      >
+                        OK
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

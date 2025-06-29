@@ -67,7 +67,7 @@ const Footer = () => {
                 <span className="block">123 Bike Street</span>
                 <span className="block">Mumbai, Maharashtra 400001</span>
               </li>
-              <li className="text-gray-300">contact@rideeasy.in</li>
+              <li className="text-gray-300">rideeasyrental@gmail.com</li>
               <li className="text-gray-300">+91 99999 88888</li>
             </ul>
           </div>

@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Camera, Edit, Check, X } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateUserProfile, uploadAvatar } from '@/lib/auth';
+import { supabase } from '@/integrations/supabase/client';
 
 const ProfileInfo = () => {
   const { toast } = useToast();
@@ -20,6 +20,9 @@ const ProfileInfo = () => {
     date_of_birth: '',
     avatar_url: '',
   });
+  
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Set initial data when profile is loaded
   useEffect(() => {
@@ -117,6 +120,50 @@ const ProfileInfo = () => {
         setIsLoading(false);
       }
     }
+  };
+  
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      // Call the Supabase Edge Function to delete the user
+      await deleteUser();
+      
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been permanently deleted.",
+      });
+      
+      // Redirect to home page
+      window.location.href = '/';
+    } catch (error: any) {
+      console.error("Error deleting account:", error);
+      
+      toast({
+        title: "Delete Failed",
+        description: error.message || "There was a problem deleting your account.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  
+  // Function to call the Supabase Edge Function to delete the user
+  const deleteUser = async () => {
+    const session = await supabase.auth.getSession();
+    const accessToken = session.data.session?.access_token;
+    if (!accessToken) throw new Error('Not authenticated');
+    const res = await fetch('/api/delete-user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete account');
+    // Sign out after deletion
+    await supabase.auth.signOut();
   };
   
   if (!profile) {
@@ -311,6 +358,40 @@ const ProfileInfo = () => {
             </div>
           </div>
         </div>
+      </div>
+      {/* Danger Zone: Delete Account */}
+      <div className="mt-8 border-t pt-6">
+        <h3 className="text-lg font-semibold text-red-600 mb-2">Danger Zone</h3>
+        <p className="text-sm text-gray-600 mb-4">Permanently delete your account and all data. This action cannot be undone.</p>
+        <button
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition"
+          onClick={() => setShowDeleteConfirm(true)}
+        >
+          Delete Account
+        </button>
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+            <div className="bg-white p-6 rounded shadow-lg max-w-sm w-full">
+              <h4 className="text-lg font-bold text-red-600 mb-2">Delete Account?</h4>
+              <p className="mb-4 text-gray-700">Are you sure you want to permanently delete your account? This action cannot be undone.</p>
+              <div className="flex justify-end space-x-2">
+                <button
+                  className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
