@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Search, User, BookOpen, LogOut, Settings } from 'lucide-react';
+import { Menu, X, Search, User, BookOpen, LogOut, Settings, Bell } from 'lucide-react';
 import { useToast } from "../hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotificationContext } from '@/contexts/NotificationContext';
 import { 
   DropdownMenu,
   DropdownMenuTrigger,
@@ -16,6 +17,15 @@ const Navbar = () => {
   const { toast } = useToast();
   const { user, signOut: authSignOut, profile } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { notifications, markAsRead, fetchNotifications } = useNotificationContext();
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  // Fetch notifications when user logs in
+  React.useEffect(() => {
+    if (user) fetchNotifications(user.id);
+  }, [user]);
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const handleLogout = async () => {
     try {
@@ -29,6 +39,14 @@ const Navbar = () => {
         variant: "destructive"
       });
     }
+  };
+
+  // Helper for notification color
+  const getNotifColor = (notif) => {
+    if (notif.status === 'approved' || notif.type === 'payment') return 'bg-green-100 border-green-400';
+    if (notif.status === 'rejected') return 'bg-red-100 border-red-400';
+    if (notif.type === 'offer' || notif.status === 'info') return 'bg-yellow-100 border-yellow-400';
+    return 'bg-gray-50 border-gray-200';
   };
 
   return (
@@ -52,6 +70,50 @@ const Navbar = () => {
           <button onClick={() => navigate('/bikes')} className="relative p-2 rounded-full hover:bg-gray-100">
             <Search size={20} className="text-gray-600" />
           </button>
+          {/* Notification Bell */}
+          {user && (
+            <div className="relative">
+              <button
+                className="relative p-2 rounded-full hover:bg-gray-100 focus:outline-none"
+                onClick={() => setNotifOpen((v) => !v)}
+              >
+                <Bell size={22} className="text-gray-600" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded-lg z-50 border overflow-hidden">
+                  <div className="p-3 border-b font-semibold text-gray-700 flex justify-between items-center">
+                    Notifications
+                    <button className="text-xs text-blue-500 hover:underline" onClick={() => setNotifOpen(false)}>Close</button>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto divide-y">
+                    {notifications.length === 0 && (
+                      <div className="p-4 text-gray-500 text-center">No notifications yet.</div>
+                    )}
+                    {notifications.map((notif) => (
+                      <button
+                        key={notif.id}
+                        className={`w-full text-left px-4 py-3 border-l-4 ${getNotifColor(notif)} hover:bg-blue-50 transition flex flex-col ${notif.is_read ? 'opacity-70' : ''}`}
+                        onClick={() => markAsRead(notif.id)}
+                      >
+                        <span className="text-sm font-medium flex items-center gap-2">
+                          {notif.status === 'approved' || notif.type === 'payment' ? '✅' : notif.status === 'rejected' ? '❌' : notif.type === 'offer' ? '🔥' : '🟡'}
+                          {notif.message}
+                        </span>
+                        <span className="text-xs text-gray-400 mt-1">{new Date(notif.timestamp).toLocaleString()}</span>
+                        {/* Example: clickable for booking details */}
+                        {notif.type === 'booking' && (
+                          <span className="text-xs text-blue-600 underline cursor-pointer mt-1">View Booking Details</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           
           {user ? (
             <DropdownMenu>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Bike, Download, FileText, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, Bike, Download, FileText, CheckCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { bikes } from '../data/bikes';
@@ -16,25 +16,69 @@ const BookingsList = () => {
   const fetchBookings = async () => {
     if (!user) return;
     setLoading(true);
+    try {
     const { data, error } = await supabase
       .from('bookings')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching bookings:', error);
+        toast.error('Failed to load bookings');
+      } else {
     setBookings(data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching bookings:', err);
+      toast.error('Failed to load bookings');
+    } finally {
     setLoading(false);
+    }
+  };
+
+  // Manual refresh function
+  const refreshBookings = () => {
+    fetchBookings();
   };
 
   useEffect(() => {
     fetchBookings();
     if (!user) return;
+    
+    // More responsive real-time subscription
     const channel = supabase
-      .channel('user-bookings')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `user_id=eq.${user.id}` }, () => {
-        fetchBookings();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+      .channel('user-bookings-realtime')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'bookings', 
+          filter: `user_id=eq.${user.id}` 
+        }, 
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          // Immediately update the bookings list
+          if (payload.eventType === 'INSERT') {
+            setBookings(prev => [payload.new, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setBookings(prev => prev.map(booking => 
+              booking.booking_id === payload.new.booking_id ? payload.new : booking
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            setBookings(prev => prev.filter(booking => 
+              booking.booking_id !== payload.old.booking_id
+            ));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
+    
+    return () => { 
+      supabase.removeChannel(channel); 
+    };
   }, [user]);
 
   const getBikeDetails = (bikeId: string) => bikes.find(b => b.id === bikeId);
@@ -178,6 +222,7 @@ y += 30;
 
   const handleCancelBooking = async (bookingId: string) => {
     if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    // @ts-expect-error: Supabase deep instantiation bug
     const { error } = await supabase
       .from('bookings')
       .delete()
@@ -208,6 +253,19 @@ y += 30;
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Refresh Button */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">My Bookings</h2>
+        <button 
+          onClick={refreshBookings}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </button>
+      </div>
+      
       {bookings.map((booking: any, index: number) => {
         const bike = getBikeDetails(booking.bike_id);
         return (
@@ -221,6 +279,7 @@ y += 30;
                 'bg-gray-100 text-gray-700 px-2 py-1 rounded font-semibold'
               }>
                 {booking.status === 'pending' ? 'Pending – Waiting for Approval' :
+                 booking.status === 'awaiting_payment' ? 'Pending – Waiting for Approval' :
                  booking.status === 'confirmed' ? 'Confirmed' :
                  booking.status === 'rejected' ? 'Rejected' :
                  booking.status === 'cancelled' ? 'Cancelled' :
@@ -281,7 +340,7 @@ y += 30;
                   <FileText size={16} className="mr-1" />
                   View Details
                 </button>
-                {booking.status === 'pending' && (
+                {(booking.status === 'pending' || booking.status === 'awaiting_payment') && (
                   <button
                     className="bg-yellow-500 text-white px-2 py-1 rounded"
                     onClick={() => handleCancelBooking(booking.booking_id)}

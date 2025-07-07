@@ -123,11 +123,11 @@ const SettingsPage = () => {
       });
       window.location.href = '/';
     } catch (error: any) {
-      toast({
+    toast({
         title: 'Delete Failed',
         description: error.message || 'There was a problem deleting your account.',
         variant: 'destructive',
-      });
+    });
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
@@ -151,145 +151,145 @@ const SettingsPage = () => {
             </div>
           ) : (
             <div className="flex flex-col items-center space-y-8">
-              {/* Notifications Panel */}
+                {/* Notifications Panel */}
               <div className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:shadow-xl border border-gray-100 w-full">
-                <div className="p-6">
-                  <div className="flex items-center mb-4">
-                    <Bell className="h-5 w-5 text-brand-blue mr-2" />
-                    <h2 className="text-xl font-semibold">Notifications</h2>
-                  </div>
-                  <p className="text-sm text-gray-500 mb-4">Control how you receive notifications</p>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Email notifications</p>
-                        <p className="text-sm text-gray-500">Get updates via email</p>
-                      </div>
-                      <Switch 
-                        checked={settings.emailNotifications} 
-                        onCheckedChange={() => handleSettingChange('emailNotifications')} 
-                      />
+                  <div className="p-6">
+                    <div className="flex items-center mb-4">
+                      <Bell className="h-5 w-5 text-brand-blue mr-2" />
+                      <h2 className="text-xl font-semibold">Notifications</h2>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">SMS notifications</p>
-                        <p className="text-sm text-gray-500">Get updates via text message</p>
+                    <p className="text-sm text-gray-500 mb-4">Control how you receive notifications</p>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">Email notifications</p>
+                          <p className="text-sm text-gray-500">Get updates via email</p>
+                        </div>
+                        <Switch 
+                          checked={settings.emailNotifications} 
+                          onCheckedChange={() => handleSettingChange('emailNotifications')} 
+                        />
                       </div>
-                      <Switch 
-                        checked={settings.smsNotifications} 
-                        onCheckedChange={() => handleSettingChange('smsNotifications')} 
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Marketing emails</p>
-                        <p className="text-sm text-gray-500">Receive promotional emails</p>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">SMS notifications</p>
+                          <p className="text-sm text-gray-500">Get updates via text message</p>
+                        </div>
+                        <Switch 
+                          checked={settings.smsNotifications} 
+                          onCheckedChange={() => handleSettingChange('smsNotifications')} 
+                        />
                       </div>
-                      <Switch 
-                        checked={settings.marketingEmails} 
-                        onCheckedChange={() => handleSettingChange('marketingEmails')} 
-                      />
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">Marketing emails</p>
+                          <p className="text-sm text-gray-500">Receive promotional emails</p>
+                        </div>
+                        <Switch 
+                          checked={settings.marketingEmails} 
+                          onCheckedChange={() => handleSettingChange('marketingEmails')} 
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              {/* Language Panel */}
+                {/* Language Panel */}
               <div className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:shadow-xl border border-gray-100 w-full">
-                <div className="p-6">
-                  <div className="flex items-center mb-4">
-                    <Globe className="h-5 w-5 text-brand-blue mr-2" />
-                    <h2 className="text-xl font-semibold">Language</h2>
+                  <div className="p-6">
+                    <div className="flex items-center mb-4">
+                      <Globe className="h-5 w-5 text-brand-blue mr-2" />
+                      <h2 className="text-xl font-semibold">Language</h2>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-4">Choose your preferred language</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {LANGUAGES.map((language) => (
+                        <button
+                          key={language.id}
+                          onClick={() => handleLanguageChange(language.id)}
+                          className={`flex items-center justify-center p-3 rounded-md transition-all ${
+                            currentLanguage === language.id
+                              ? 'bg-brand-blue text-white scale-105'
+                              : 'bg-gray-100 hover:bg-gray-200'
+                          }`}
+                        >
+                          <span className="text-xl mr-2">{language.flag}</span>
+                          <span>{language.name}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-500 mb-4">Choose your preferred language</p>
+                </div>
+                {/* Theme Panel */}
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:shadow-xl border border-gray-100 w-full">
+                  <div className="p-6">
+                    <div className="flex items-center mb-4">
+                      <Sun className="h-5 w-5 text-brand-blue mr-2" />
+                      <h2 className="text-xl font-semibold">Appearance</h2>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-4">Customize the look and feel</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {LANGUAGES.map((language) => (
-                      <button
-                        key={language.id}
-                        onClick={() => handleLanguageChange(language.id)}
-                        className={`flex items-center justify-center p-3 rounded-md transition-all ${
-                          currentLanguage === language.id
-                            ? 'bg-brand-blue text-white scale-105'
-                            : 'bg-gray-100 hover:bg-gray-200'
-                        }`}
-                      >
-                        <span className="text-xl mr-2">{language.flag}</span>
-                        <span>{language.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              {/* Theme Panel */}
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:shadow-xl border border-gray-100 w-full">
-                <div className="p-6">
-                  <div className="flex items-center mb-4">
-                    <Sun className="h-5 w-5 text-brand-blue mr-2" />
-                    <h2 className="text-xl font-semibold">Appearance</h2>
-                  </div>
-                  <p className="text-sm text-gray-500 mb-4">Customize the look and feel</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {THEMES.map((theme) => (
-                      <button
-                        key={theme.id}
-                        onClick={() => handleThemeChange(theme.id)}
-                        className={`flex flex-col items-center justify-center p-4 rounded-md transition-all ${
-                          currentTheme === theme.id
-                            ? 'bg-brand-blue text-white scale-105'
-                            : 'bg-gray-100 hover:bg-gray-200'
-                        }`}
-                      >
-                        {theme.icon}
-                        <span className="mt-2 capitalize">{theme.id}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              {/* Security Panel */}
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:shadow-xl border border-gray-100 w-full">
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold mb-4">Security</h2>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Two-factor authentication</p>
-                        <p className="text-sm text-gray-500">Add an extra layer of security</p>
-                      </div>
-                      <Switch 
-                        checked={settings.twoFactorAuth} 
-                        onCheckedChange={() => handleSettingChange('twoFactorAuth')} 
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Auto-save data</p>
-                        <p className="text-sm text-gray-500">Save your progress automatically</p>
-                      </div>
-                      <Switch 
-                        checked={settings.autoSave} 
-                        onCheckedChange={() => handleSettingChange('autoSave')} 
-                      />
+                      {THEMES.map((theme) => (
+                        <button
+                          key={theme.id}
+                          onClick={() => handleThemeChange(theme.id)}
+                          className={`flex flex-col items-center justify-center p-4 rounded-md transition-all ${
+                            currentTheme === theme.id
+                              ? 'bg-brand-blue text-white scale-105'
+                              : 'bg-gray-100 hover:bg-gray-200'
+                          }`}
+                        >
+                          {theme.icon}
+                          <span className="mt-2 capitalize">{theme.id}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
-              </div>
-              {/* Danger Zone Panel */}
+                {/* Security Panel */}
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:shadow-xl border border-gray-100 w-full">
+                  <div className="p-6">
+                    <h2 className="text-xl font-semibold mb-4">Security</h2>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">Two-factor authentication</p>
+                          <p className="text-sm text-gray-500">Add an extra layer of security</p>
+                        </div>
+                        <Switch 
+                          checked={settings.twoFactorAuth} 
+                          onCheckedChange={() => handleSettingChange('twoFactorAuth')} 
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">Auto-save data</p>
+                          <p className="text-sm text-gray-500">Save your progress automatically</p>
+                        </div>
+                        <Switch 
+                          checked={settings.autoSave} 
+                          onCheckedChange={() => handleSettingChange('autoSave')} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Danger Zone Panel */}
               <div className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:shadow-xl border border-red-100 w-full">
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-red-600 mb-4">Danger Zone</h2>
-                  <p className="text-sm text-gray-500 mb-4">Irreversible and destructive actions</p>
-                  <div className="border border-red-200 rounded-md p-4 bg-red-50">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-red-700">Delete Account</p>
-                        <p className="text-sm text-red-500">Permanently delete your account and all data</p>
-                      </div>
-                      <Button 
-                        variant="destructive" 
-                        onClick={handleDeleteAccount}
-                        className="bg-white text-red-600 border border-red-600 hover:bg-red-600 hover:text-white"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" /> Delete Account
+                  <div className="p-6">
+                    <h2 className="text-xl font-semibold text-red-600 mb-4">Danger Zone</h2>
+                    <p className="text-sm text-gray-500 mb-4">Irreversible and destructive actions</p>
+                    <div className="border border-red-200 rounded-md p-4 bg-red-50">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-red-700">Delete Account</p>
+                          <p className="text-sm text-red-500">Permanently delete your account and all data</p>
+                        </div>
+                        <Button 
+                          variant="destructive" 
+                          onClick={handleDeleteAccount}
+                          className="bg-white text-red-600 border border-red-600 hover:bg-red-600 hover:text-white"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" /> Delete Account
                       </Button>
                     </div>
                   </div>
@@ -313,10 +313,10 @@ const SettingsPage = () => {
                             disabled={isDeleting}
                           >
                             {isDeleting ? 'Deleting...' : 'Yes, Delete'}
-                          </Button>
-                        </div>
+                        </Button>
                       </div>
                     </div>
+                  </div>
                   )}
                 </div>
               </div>

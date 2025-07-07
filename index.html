@@ -47,9 +47,9 @@
       .slide-contact-buttons {
         position: fixed;
         right: 0;
-        bottom: 120px;
+        bottom: 40px;
         width: 200px; /* enough for expanded button */
-        height: 180px; /* enough for all buttons */
+        height: 240px; /* enough for all buttons including chatbot */
         z-index: 9999;
         pointer-events: none; /* allow only children to be interactive */
       }
@@ -106,12 +106,13 @@
       .slide-btn.whatsapp { background-color: #25d366; }
       .slide-btn.phone { background-color: #007bff; }
       .slide-btn.email { background-color: #ff9800; }
+      .slide-btn.chatbot { background-color: #6366f1; }
 
       @media (max-width: 600px) {
         .slide-contact-buttons {
           bottom: 16px;
           width: 140px;
-          height: 140px;
+          height: 200px;
         }
         .slide-btn {
           width: 44px;
@@ -128,10 +129,34 @@
         .slide-btn.whatsapp { top: 0; }
         .slide-btn.phone { top: 50px; }
         .slide-btn.email { top: 100px; }
+        .slide-btn.chatbot { top: 150px; }
       }
     </style>
 
-    <!-- ✅ Tidio Chat Script -->
+    <!-- Custom: Move Tidio chat bubble a bit left -->
+    <style>
+      #tidio-chat {
+        right: 30px !important;
+      }
+    </style>
+
+    <!-- ✅ Lyro AI Agent Integration -->
+    <!-- The Lyro chat widget is now integrated via React component -->
+    
+    <script>
+      // Handle chatbot button click
+      document.addEventListener('DOMContentLoaded', function() {
+        const chatbotBtn = document.getElementById('chatbot-btn');
+        if (chatbotBtn) {
+          chatbotBtn.addEventListener('click', function() {
+            // Dispatch custom event to communicate with React component
+            window.dispatchEvent(new CustomEvent('openLyroChat'));
+          });
+        }
+      });
+    </script>
+
+    <!-- ✅ Tidio Chat Widget -->
     <script src="//code.tidio.co/wjix3zeo7xpmrsrlhqz2batwadtqkmis.js" async></script>
   </body>
 </html>

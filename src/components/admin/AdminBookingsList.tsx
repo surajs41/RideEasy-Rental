@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'react-toastify';
 import { jsPDF } from 'jspdf';
@@ -8,30 +9,73 @@ const AdminBookingsList = () => {
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [bikes, setBikes] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<any[]>([]);
 
   const fetchBookings = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error && data) setBookings(data);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching bookings:', error);
+        toast.error('Failed to load bookings');
+      } else {
+        setBookings(data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching bookings:', err);
+      toast.error('Failed to load bookings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manual refresh function
+  const refreshBookings = () => {
+    fetchBookings();
   };
 
   useEffect(() => {
     fetchBookings();
     const channel = supabase
-      .channel('bookings')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {
-        fetchBookings();
-      })
-      .subscribe();
+      .channel('admin-bookings-realtime')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'bookings' 
+        }, 
+        (payload) => {
+          console.log('Admin real-time update received:', payload);
+          // Immediately update the bookings list
+          if (payload.eventType === 'INSERT') {
+            setBookings(prev => [payload.new, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setBookings(prev => prev.map(booking => 
+              booking.booking_id === payload.new.booking_id ? payload.new : booking
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            setBookings(prev => prev.filter(booking => 
+              booking.booking_id !== payload.old.booking_id
+            ));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Admin subscription status:', status);
+      });
     return () => { supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => {
     supabase.from('bikes').select('*').then(({ data }) => setBikes(data || []));
+  }, []);
+
+  useEffect(() => {
+    supabase.from('profiles').select('*').then(({ data }) => setProfiles(data || []));
   }, []);
 
   useEffect(() => {
@@ -46,6 +90,12 @@ const AdminBookingsList = () => {
   const getBikeName = (bikeId: string) => bikes.find(b => b.id === bikeId)?.name || bikeId;
 
   const getBikeDetails = (bikeId: string, bikes: any[]) => bikes.find(b => b.id === bikeId);
+
+  const getUserName = (userId: string) => {
+    const user = profiles.find((p) => p.id === userId);
+    if (!user) return userId; // fallback to ID if not found
+    return `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || userId;
+  };
 
   const generateInvoicePDF = (booking: any, bike: any) => {
     const doc = new jsPDF();
@@ -152,12 +202,22 @@ const AdminBookingsList = () => {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">All Bookings (Admin)</h2>
+      <div className="flex justify-between items-center mb-4 z-50 relative">
+        <h2 className="text-2xl font-bold text-gray-800">All Bookings (Admin)</h2>
+        <button 
+          onClick={refreshBookings}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </button>
+      </div>
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white rounded-xl shadow-lg text-sm">
           <thead className="sticky top-0 z-10 bg-gradient-to-r from-red-100 to-white">
             <tr className="">
-              <th className="px-4 py-3 text-left">User ID</th>
+              <th className="px-4 py-3 text-left">User Name</th>
               <th className="px-4 py-3 text-left">Bike ID</th>
               <th className="px-4 py-3 text-left">Bike Name</th>
               <th className="px-4 py-3 text-left">Start</th>
@@ -178,7 +238,7 @@ const AdminBookingsList = () => {
                   `${idx % 2 === 0 ? "bg-gray-50" : "bg-white"} transition hover:bg-red-50/80 duration-200 group`
                 }
               >
-                <td className="px-4 py-3 truncate max-w-[120px]">{b.user_id}</td>
+                <td className="px-4 py-3 truncate max-w-[120px]">{getUserName(b.user_id)}</td>
                 <td className="px-4 py-3 truncate max-w-[120px]">{b.bike_id}</td>
                 <td className="px-4 py-3">{getBikeDetails(b.bike_id, bikes)?.name || b.bike_id}</td>
                 <td className="px-4 py-3">{new Date(b.start_date).toLocaleDateString()}</td>
