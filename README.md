@@ -2,7 +2,7 @@
 
 ## Project info
 
-**URL**: 
+**URL**: https://ride-easy-rental.vercel.app/
 
 ## How can I edit this code?
 
